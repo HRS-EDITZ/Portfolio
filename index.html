@@ -2,7 +2,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HARIHARAN'S Portfolio</title>
-<link rel="icon" type="image/png" sizes="128x128" href="test1.png">
+<link rel="icon" type="image/png" sizes="128x128" href="test.png">
 
 
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -406,10 +406,7 @@
   <div class="video-lightbox-inner" id="video-lightbox-inner">
     <button class="video-lightbox-close" onclick="closeLightbox()">✕</button>
     <!-- Before/After tabs — always visible above the video -->
-    <div class="lb-tab-bar" id="lb-tab-bar">
-      <button class="lb-tab-btn active" id="lb-before-btn" onclick="switchLightboxVideo('before', _lbIdx)">⬅ BEFORE EDIT</button>
-      <button class="lb-tab-btn inactive" id="lb-after-btn" onclick="switchLightboxVideo('after',  _lbIdx)">AFTER EDIT ➡</button>
-    </div>
+    <div class="lb-tab-bar" id="lb-tab-bar" style="display:none;"></div>
     <div class="video-lightbox-frame" id="video-lightbox-frame"></div>
     <div class="video-lightbox-title" id="video-lightbox-title"></div>
   </div>
@@ -650,7 +647,7 @@
 <!-- FOOTER -->
 <footer>
   <div class="footer-logo" id="footer-name">Hariharan R</div>
-  <div>Editor · Colorist · Visual Storyteller</div>
+  <div>Editor · Colorist</div>
   <div class="footer-mono" style="margin-top:1.5rem;">© 2025 · All Rights Reserved</div>
 </footer>
 
@@ -735,7 +732,7 @@
     <div class="admin-section" id="tab-about">
       <div class="form-group"><label>Avatar Emoji (shown in about section)</label><input type="text" id="edit-avatar" value="🎬"></div>
       <div class="form-group"><label>About Visual Label</label><input type="text" id="edit-visual-label" value="Editor &amp; Colorist"></div>
-      <div class="form-group"><label>About Heading</label><input type="text" id="edit-about-heading" value="A Frame-by-Frame Storyteller"></div>
+      <div class="form-group"><label>About Heading</label><input type="text" id="edit-about-heading" value="Turning Raw Footage Into Stories"></div>
       <div class="form-group"><label>About Paragraph 1</label><textarea id="edit-about-p1" rows="4">I'm a passionate video editor and colorist with a sharp eye for pacing, emotion, and visual style. Every cut I make is intentional — driven by story, rhythm, and a deep understanding of what makes audiences feel something.</textarea></div>
       <div class="form-group"><label>About Paragraph 2</label><textarea id="edit-about-p2" rows="4">From cinematic short films to high-energy social content, I work across genres and formats, bringing technical precision and creative instinct to every project I touch.</textarea></div>
       <div class="form-group"><label>Software Pills (comma-separated)</label><input type="text" id="edit-pills" value="Premiere Pro, DaVinci Resolve, After Effects, Final Cut Pro, Photoshop, Color Grading, Sound Design, Motion Graphics"></div>
