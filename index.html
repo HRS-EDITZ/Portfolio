@@ -818,11 +818,6 @@ body.cursor-hidden #cursor-ring { opacity: 0; }
 <div class="video-lightbox" id="video-lightbox">
   <div class="video-lightbox-inner" id="video-lightbox-inner">
     <button class="video-lightbox-close" onclick="closeLightbox()">✕</button>
-    <!-- Before/After tabs — always visible above the video -->
-    <div class="lb-tab-bar" id="lb-tab-bar">
-      <button class="lb-tab-btn active" id="lb-before-btn" onclick="switchLightboxVideo('before', _lbIdx)">⬅ BEFORE EDIT</button>
-      <button class="lb-tab-btn inactive" id="lb-after-btn" onclick="switchLightboxVideo('after',  _lbIdx)">AFTER EDIT ➡</button>
-    </div>
     <div class="video-lightbox-frame" id="video-lightbox-frame"></div>
     <div class="video-lightbox-title" id="video-lightbox-title"></div>
   </div>
@@ -1188,7 +1183,7 @@ body.cursor-hidden #cursor-ring { opacity: 0; }
       <div class="video-upload-note">
         <strong>🎬 HOW TO ADD VIDEOS (streams from Google Drive — no file size limit):</strong><br>
         1. Upload your video to <strong>Google Drive</strong> and set sharing to <em>"Anyone with the link"</em><br>
-        2. Copy the share link and paste it into the <strong>Before Edit</strong> or <strong>After Edit</strong> field below<br>
+        2. Copy the share link and paste it into the <strong>Google Drive Link</strong> field below<br>
         3. The Drive ID is auto-detected and videos play securely inside the portfolio (view only, no download)<br>
         <span style="color:var(--muted);">Tip: Thumbnails are stored in the page; Drive links are just URLs so they add almost no size.</span>
       </div>
