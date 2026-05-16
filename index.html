@@ -10,126 +10,268 @@
 
   <link rel="stylesheet" href="styles.css">
 <style>
-/* ══════════════════════════════════════════════════════
-   HARIHARAN EDITING STUDIOZ — 5-Second Cinematic Shine
-   ══════════════════════════════════════════════════════ */
+/* ============================================================
+   COLOR GRADING SECTION
+============================================================ */
+#color-grading { padding: var(--section-pad) var(--side-pad); }
 
-/* The brand name text — deep gold → bright white → deep gold sweep */
-.brand-main {
+.cg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 2rem;
+  margin-top: 2.5rem;
+}
+
+/* Card */
+.cg-card {
+  background: var(--dark2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.cg-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  border-color: rgba(232,197,71,0.4);
+}
+
+/* Slider area on card (mini preview) */
+.cg-slider-wrap {
   position: relative;
-  display: inline-block;
-  background: linear-gradient(
-    100deg,
-    #7a4e00 0%,
-    #b87c0a 10%,
-    #e8c547 22%,
-    #fff5a0 35%,
-    #ffffff 50%,
-    #fff5a0 65%,
-    #e8c547 78%,
-    #b87c0a 90%,
-    #7a4e00 100%
-  );
-  background-size: 250% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: brandShine5 5s ease-in-out infinite;
-  text-shadow: none;
-  overflow: visible;
+  width: 100%;
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  background: #0a0a0a;
+  user-select: none;
 }
-
-@keyframes brandShine5 {
-  0%   { background-position: 200% center; }
-  50%  { background-position: -100% center; }
-  100% { background-position: 200% center; }
+.cg-img-before, .cg-img-after {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
 }
-
-/* Sharp white glint that sweeps left-to-right once per 5s */
-.brand-main::before {
+.cg-img-after {
+  clip-path: inset(0 50% 0 0);
+  transition: clip-path 0s;
+}
+.cg-divider {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: var(--accent);
+  pointer-events: none;
+  z-index: 3;
+}
+.cg-divider::after {
   content: '';
   position: absolute;
-  top: -5%;
-  left: -80%;
-  width: 40%;
-  height: 110%;
-  background: linear-gradient(
-    110deg,
-    transparent   0%,
-    transparent  35%,
-    rgba(255,255,255,0.9) 50%,
-    transparent  65%,
-    transparent 100%
-  );
-  animation: brandGlint5 5s ease-in-out infinite;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px; height: 32px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(232,197,71,0.25);
+}
+.cg-range {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+  cursor: ew-resize;
+  z-index: 4;
+  -webkit-appearance: none;
+  margin: 0;
+}
+.cg-label {
+  position: absolute;
+  bottom: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  z-index: 3;
   pointer-events: none;
-  mix-blend-mode: screen;
-  z-index: 1;
+  font-weight: 700;
+}
+.cg-label-before {
+  left: 0.6rem;
+  background: rgba(0,0,0,0.65);
+  color: var(--muted);
+}
+.cg-label-after {
+  right: 0.6rem;
+  background: rgba(232,197,71,0.15);
+  color: var(--accent);
 }
 
-@keyframes brandGlint5 {
-  0%,20% { left: -80%; opacity: 0; }
-  38%    { opacity: 1; }
-  52%    { left: 130%; opacity: 0; }
-  100%   { left: -80%; opacity: 0; }
+/* Card info */
+.cg-info {
+  padding: 1.1rem 1.2rem 1.3rem;
+}
+.cg-shot-cat {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+.cg-shot-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.3rem;
+}
+.cg-shot-desc {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-bottom: 0.7rem;
+}
+.cg-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.cg-tag {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
 }
 
-/* Subtitle — gentle gold pulse */
-.brand-sub {
-  animation: subGlow 5s ease-in-out infinite;
+/* ── Lightbox ── */
+.cg-lightbox {
+  display: none;
+  position: fixed; inset: 0;
+  z-index: 9990;
+  background: rgba(0,0,0,0.92);
+  align-items: center;
+  justify-content: center;
 }
-@keyframes subGlow {
-  0%,100% { opacity: 0.65; }
-  50%     { opacity: 1; color: #e8c547; }
+.cg-lightbox.open { display: flex; }
+.cg-lightbox-inner {
+  position: relative;
+  width: min(92vw, 1000px);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+.cg-lb-slider-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  background: #000;
+  border-radius: 4px;
+  user-select: none;
+}
+.cg-lb-img-before, .cg-lb-img-after {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+.cg-lb-img-after {
+  clip-path: inset(0 50% 0 0);
+}
+.cg-lb-divider {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: var(--accent);
+  pointer-events: none;
+  z-index: 3;
+}
+.cg-lb-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 42px; height: 42px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 6px rgba(232,197,71,0.2), 0 0 20px rgba(232,197,71,0.35);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='%23000'%3E%3Cpath d='M8 5l-7 7 7 7M16 5l7 7-7 7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 18px;
+}
+.cg-lb-range {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+  cursor: ew-resize;
+  z-index: 4;
+  -webkit-appearance: none;
+  margin: 0;
+}
+.cg-lb-label-before, .cg-lb-label-after {
+  position: absolute;
+  bottom: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  padding: 0.3rem 0.7rem;
+  border-radius: 2px;
+  z-index: 3;
+  pointer-events: none;
+  font-weight: 700;
+}
+.cg-lb-label-before {
+  left: 0.8rem;
+  background: rgba(0,0,0,0.65);
+  color: #aaa;
+}
+.cg-lb-label-after {
+  right: 0.8rem;
+  background: rgba(232,197,71,0.18);
+  color: var(--accent);
+}
+
+/* Admin upload area for images */
+.cg-upload-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  border: 2px dashed var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  transition: border-color 0.2s, background 0.2s;
+  text-align: center;
+  padding: 1rem;
+}
+.cg-upload-area:hover {
+  border-color: var(--accent);
+  background: rgba(232,197,71,0.04);
+  color: var(--accent);
+}
+.cg-preview-strip {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+.cg-preview-img {
+  width: 80px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 3px;
+  border: 1px solid var(--border);
 }
 </style>
-
-<script>
-/* ══ Animated Favicon — actual HRS logo embedded as base64 ══ */
-(function () {
-  'use strict';
-  var LOGO_B64 = '/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCABaAFMDASIAAhEBAxEB/8QAHAABAAMBAQEBAQAAAAAAAAAAAAQFBgcDCAEC/8QAOBAAAgEDAwICCAUDAwUAAAAAAQIDBAURABIhBjETQQcUFSIyUWGRQlJxgdEzYnIIIyWhsbLB8P/EABoBAAIDAQEAAAAAAAAAAAAAAAAFAgQGAQP/xAAtEQABAwIEBAUFAQEAAAAAAAABAAIDBBESITFRBUFh8BOBkaHRInGxweHxBv/aAAwDAQACEQMRAD8A+f8A0relG6de3WnqZ6GChpaVGWnp1cuV3EFiW4yTgeQ7DWM9pT/kj+x/nULTXhDSxQRiONtgFN8jnnE45qb7Sn/JH9j/ADrR3y4T03Q/TlMyxh55auuAwfgdo4ge/wA6dvtrO2G2VN5u9NbKML4077QzHCoAMszHyVQCSfIA6m9Z3CmuV9ZbbvNupI0pKHcuCYoxtDEeRY5cj5sdQe1rpWtA0z9iPe/sugkNJUH2lP8Akj+x/nT2lP+SP7H+dflztVytjhK+hqKYkZXxEIBHzB7HUPU2hjhcKJuNVN9pT/AJI/sf509pT/AJI/sf51C01LA3ZcuVN9pT/kj+x/nTULTRgbsi5TU6y2m43mtFHbKSSpmwWYLgKijuzMeFUeZJAGrYXXpKn96k6SqJ3HYXG6tKn7iJIj/wBdeFx6jvF2p1tMRhpKF3XbQUUQhhZvIsF5c/3OWP114mSQ6Nt1Nv0Tf2+6kGt3v9lMuFZbrFaJ7NZqlaqsqV2XK5JnZsz/AEIfMpke8/48AD3fip7JcxRXGnnhpgYopVZwSQ8oByV3DlcjI93B+uorUk9U8iUkbSwQDLyKOD9f3PAH/vU9PV7HKVEEVXce+2UZjpz35H4m+h4HYg9h54G2LBmT3nt+lcZG5v1nId6LsEl/sUE1worDZ5zTR3ukvNNNAvjKzgguikKNgVcjaWPOedS+reu7j1Ivq89rqfA9vLcWWqRq2J41B2gp4jGNc8FVGMH9tc3s3RvVXVtLBXGp8Wnxvk9YkaKGBM/XAwf7RreXH0M223z0Qu12e0y1hYwrH/uxgAAgLKD7wyeOCR59s6zMoooJA18l3C+5OQF/xfT9J/Fw+qnvhYBfTrz/AH8rL+mHrGnqpqX2JVQRtM7yV9JHRosaNkbVz4aGRe+A6kr8+2udsYqv3o4lgmIzsU+4/wDjnsfp9vlrbdfWy4dH39rB1RH7dt2N0NQeJgmBh45OSOCDtbK/Nc9svf7IlFSU9Vb6l6ygqCz084XGQMblYZ9114yv6EEgg6ecPMTIWCM5HQ7/AI98/dJqmGTxnseLEcvjXXXJVGmvdkM1L6yDllYLL+/Y/vg//HXhpq11wlr2FpsmmmmuqCasLUhSCrq9r+4nhow7B34/8d5H1Gq/XTvQhZ7fe2npLrVw09CKuJ6jxCcldrrlcA8gOxHGqdfOKeB0hF7K7w6AT1DWE2G6pobeOmLRcK2oAlqKd0ih2nMZqHB2n+4KoZsj8QXyPOx9BPSHS1b0bdousKaapginNPFtbhGCbi5XjcSWAAJxk86ienuC10sFFbLXtFIlQxjZH3eIBFEFJOBzyw7eX7m+9GfrNo9HV0slfb3q6WGtD1kMY3SNAysruozgEEoQfop8+UbppZ6NrmOLXSEX5G187bf1aaOBhrjldjBl3781qa/qm636WLpVKaKnoxRBrdJjw24XIIAPbIII5xg86yF76nhg6LpvXKyou13pZg1u8Vd0O119/bzlse73A/TX7d7x0xaVsFPZ7hV3i4UrGNJIIxAME9mZt3HPbA8++eMrWU/Vc1TFU2m019FRVEx9Vgp1dozk/iPzPOf01ChpIKd4c5uFl8r/STa4Ov1DELXy3Tupqi+Msi1Gwva5uDtcf3mun1td0z6VOnLdSOslN1PaovDnpyoDVKbdreGOxPHwefGOeDxWxxNR3+r6Rml8WlrXHqrgbSlQv8AScD8JJyh/wAj5jXWqDo+W1UdN1Dc54ra9K4ciVh4k5BBKoq8nbwCSdp5PAwTy/rKsjuHXFTeqRhmGcTlRIDhnfcAGHfB1OjMHiSNpSTEdL8jfQeZ8uaWcRpnOgY51vEB5bf56W8lHuVl8G7U1NTUrYucIRUzjc7/AAjP0cL9tY8ggkHuNfUXUNltvUPSduqhcbfQXO1SzNDEsbkypu3IcgEBiwJ/ca+ZboEW51QjOUEz7T9Nxxq7watNS1wcCCPvuc/MJHx6KISNljI+rUDkVG00007SBNWtuieq6fuUESAyQNFVFvMKCYyAPPJkX7aqtWPTly9lXiCsZC8YykqA4LRsCrAHyOCcHyODrymBLDh1+FOMgOzWqtfSt9m6Llpaq31FMzzet0TTxlTMoAVwoPPGVP6ZOvXo/rO9dPzCSohFVbpZXSemnfO5T/UAz8OQfuAe4GtvY7jUVavWS3CSaSMPUwNGyJTw7Vdo2cEl5PE3FNg4G8r3QATb3Y7Ve7Z/x9oNLVR1EXr1qkQiWjkztc4PIVvdIIyP07DLyVouWzsBBOduXe/yFseGxtcQxj8LuV9D0/PYWe63s1mpLutZbKirWhdEeFyFba7qHTIJBXIxzzrYdM2zq5aza7qwIgSoZkUeIJF3kSA5VgvPcEk4IPnq4659G1WIKCK0K1U83q9PBHJhTP4SMGJ5xwSB5HjHGOdN0NVi3vT01MYEKJ4dTUVJ5eWNyoZQecBC47fh+elFXxdktG3CcbswcXLTPfcdfJaZkVnF7NMsvn021C4L/qGr6lb8LRSySJbYWcQwFShKg7RIwwODyRwO5+eszZ7IIq22eNC6N4QrpzIMEwjJOPkDjgnvka6Zfekael6mrKuhE13roKx42eojVYk7++c53A4PLEcA/rqup7JRtUySyVsU9FW1LQPO0zo1ZIibhDC+0gbcq2WwrMABwM6bUtcxtMyJhyA9fL3z1+2aQ8Qg8KV8zzcusAOm6wlX0zfqLqWC73egK0klUZp1jnRygUGVo3CklG2KThsHWQlcySu57sxOugdfdT+sUdWlOaYe1JhOTDB4TSDADSyDJw7EbeMDAc49/J57rQUBkezHILHTvvksZVYQ+zSmmmmryrJpppoQrzpq9y2+qpy1Q8DU7F6WpVA70zkdwD3HnjyPI579H6ev0ppaG1yyvEtPEVt9wSctNU1s7cuJu6xqX3NH9ORknXHNSrfcaygZvVpiqv8AHGwDRv8ARlOVb9xpfV0DZsxr38n13zVqGpLMnaL6mfq2/wBCFD3myXa1IamqhuFQjRyrTiOMNIfDz7259gAXOVzqlj9KT3DrFen5KGy2qW3lqhK2qLRq/u5CBWWMncH4VsdtcPo+rHglp5PUEhaFGTfSTyR7lY5YbCWjAPyCAfTX93DqW2y3P2vTW+5C5E5aonuO4txt/AiHGOO+kTf+fZc42AmxsRYZ9Re3eiaDizg0BjyOnTnYrp3WPVUciVUd3Sqrqikr4oa62qywxSU7piN02EtIQAuNztjWT6r6lmoaaCnjudQ7LSimeB0CSyhCyxmUD4Cqe5nh2A8hg6xdx6grKqeSWGKGjaT42h3GRj5kyOWc5/yxqoJJOTydNKbhLGAYuXLvT/NgVTmry4kt13PffmvWqqJaqoeedy8jnk/9gPkPpry0004AAFglpN000011CaaaaEJpppoQmmmmhCaaaaEJpppoQmmmmhC//9k=';
-  var DATA_URI = 'data:image/jpeg;base64,' + LOGO_B64;
-
-  /* Remove broken favicon links */
-  document.querySelectorAll("link[rel*='icon']").forEach(function(el){ el.remove(); });
-  var faviLink = document.createElement('link');
-  faviLink.rel = 'icon'; faviLink.type = 'image/png';
-  document.head.appendChild(faviLink);
-
-  var SIZE = 64, STEPS = 30;
-  var logoImg = new Image();
-  logoImg.onload = function () {
-    var frames = [];
-    for (var i = 0; i < STEPS; i++) {
-      var c = document.createElement('canvas');
-      c.width = c.height = SIZE;
-      var ctx = c.getContext('2d'), t = i / STEPS;
-      /* bg */ ctx.fillStyle='#0d0d0d'; ctx.beginPath(); ctx.arc(SIZE/2,SIZE/2,SIZE/2,0,Math.PI*2); ctx.fill();
-      /* spinning gold ring */
-      var cols=['#5c3a00','#a06800','#e8c547','#fff8a0','#fff','#e8c547','#c8960c','#a06800','#5c3a00'];
-      var ang = t*Math.PI*2, segs=18;
-      for(var s=0;s<segs;s++){
-        ctx.strokeStyle=cols[Math.floor((s/segs)*(cols.length-1))];
-        ctx.lineWidth=6; ctx.shadowColor='#e8c547'; ctx.shadowBlur=8;
-        ctx.beginPath(); ctx.arc(SIZE/2,SIZE/2,SIZE/2-3,ang+(s/segs)*Math.PI*2,ang+((s+1)/segs)*Math.PI*2); ctx.stroke();
-      }
-      ctx.shadowBlur=0;
-      /* logo clipped */
-      ctx.save(); ctx.beginPath(); ctx.arc(SIZE/2,SIZE/2,SIZE/2-8,0,Math.PI*2); ctx.clip();
-      ctx.drawImage(logoImg,8,8,SIZE-16,SIZE-16); ctx.restore();
-      /* glint */
-      var gx=-SIZE+t*SIZE*3.2, grd=ctx.createLinearGradient(gx,0,gx+SIZE*0.7,0);
-      grd.addColorStop(0,'rgba(255,255,255,0)'); grd.addColorStop(0.5,'rgba(255,255,255,0.5)'); grd.addColorStop(1,'rgba(255,255,255,0)');
-      ctx.save(); ctx.beginPath(); ctx.arc(SIZE/2,SIZE/2,SIZE/2-8,0,Math.PI*2); ctx.clip(); ctx.fillStyle=grd; ctx.fillRect(0,0,SIZE,SIZE); ctx.restore();
-      frames.push(c.toDataURL('image/png'));
-    }
-    var fi=0; (function tick(){ faviLink.href=frames[fi%STEPS]; fi++; setTimeout(tick,5000/STEPS); })();
-  };
-  logoImg.src = DATA_URI;
-})();
-</script>
-</head>
 <body>
 
 <!-- PORTFOLIO INTRO — FILM COUNTDOWN EDITION -->
@@ -329,6 +471,7 @@
     <li><a href="#about">About</a></li>
     <li><a href="#skills">Skills</a></li>
     <li><a href="#videos">Videos</a></li>
+    <li><a href="#color-grading">Color Grading</a></li>
     <li><a href="#experience">Experience</a></li>
     <li><a href="#contact">Contact</a></li>
   </ul>
@@ -352,7 +495,8 @@
     <li><a href="#about" onclick="closeDrawer()"><span class="link-num">01</span>About</a></li>
     <li><a href="#skills" onclick="closeDrawer()"><span class="link-num">02</span>Skills</a></li>
     <li><a href="#videos" onclick="closeDrawer()"><span class="link-num">04</span>Videos</a></li>
-    <li><a href="#experience" onclick="closeDrawer()"><span class="link-num">05</span>Experience</a></li>
+    <li><a href="#color-grading" onclick="closeDrawer()"><span class="link-num">05</span>Color Grading</a></li>
+    <li><a href="#experience" onclick="closeDrawer()"><span class="link-num">06</span>Experience</a></li>
     <li><a href="#contact" onclick="closeDrawer()"><span class="link-num">06</span>Contact</a></li>
   </ul>
   <div class="nav-drawer-footer">
@@ -535,10 +679,35 @@
   </div>
 </div>
 
-<!-- EXPERIENCE -->
-<section id="experience">
+<!-- COLOR GRADING LIGHTBOX -->
+<div class="cg-lightbox" id="cg-lightbox">
+  <div class="cg-lightbox-inner" id="cg-lightbox-inner">
+    <button class="video-lightbox-close" onclick="closeCGLightbox()">✕</button>
+    <div class="cg-lb-slider-wrap" id="cg-lb-slider-wrap">
+      <div class="cg-lb-img-before" id="cg-lb-before"></div>
+      <div class="cg-lb-img-after"  id="cg-lb-after"></div>
+      <input type="range" class="cg-lb-range" id="cg-lb-range" min="0" max="100" value="50">
+      <div class="cg-lb-divider" id="cg-lb-divider"></div>
+      <div class="cg-lb-label-before">BEFORE</div>
+      <div class="cg-lb-label-after">AFTER</div>
+    </div>
+    <div class="video-lightbox-title" id="cg-lightbox-title"></div>
+  </div>
+</div>
+
+<!-- COLOR GRADING SECTION -->
+<section id="color-grading">
   <div class="fade-up visible">
-    <div class="section-eyebrow">Journey</div>
+    <div class="section-eyebrow">🎨 Colour Work</div>
+    <h2 class="section-title">Color <em style="font-style:italic;color:var(--accent)">Grading</em></h2>
+    <p class="section-sub">Drag the slider on each shot to reveal the transformation — raw to refined.</p>
+  </div>
+  <div class="cg-grid fade-up visible" id="cg-container">
+    <p style="color:var(--muted);font-family:var(--font-mono);font-size:0.85rem;padding:2rem 0;">No color grading shots yet. Open the admin panel → Color Grading tab to add your work.</p>
+  </div>
+</section>
+
+<!-- EXPERIENCE -->
     <h2 class="section-title">Experience</h2>
     <p class="section-sub">Years of refining the craft across agencies, studios, and independent productions.</p>
   </div>
@@ -799,6 +968,7 @@
       <button class="admin-tab" onclick="switchTab('basics')">Basics</button>
       <button class="admin-tab" onclick="switchTab('about')">About</button>
       <button class="admin-tab" onclick="switchTab('videos')">Videos</button>
+      <button class="admin-tab" onclick="switchTab('color-grading')">🎨 Color Grading</button>
       <button class="admin-tab" onclick="switchTab('skills')">Skills</button>
       <button class="admin-tab" onclick="switchTab('projects')">Projects</button>
       <button class="admin-tab" onclick="switchTab('experience')">Experience</button>
@@ -872,6 +1042,19 @@
       </div>
       <div id="videos-editor"></div>
       <button class="admin-btn-add" onclick="addVideo()">+ Add Video</button>
+    </div>
+
+    <!-- COLOR GRADING -->
+    <div class="admin-section" id="tab-color-grading">
+      <div class="video-upload-note">
+        <strong>🎨 HOW TO ADD COLOR GRADING SHOTS:</strong><br>
+        1. Click <strong>"+ Add Shot"</strong> below to create a new before/after pair<br>
+        2. Upload the <strong>Before</strong> image (raw/ungraded) and the <strong>After</strong> image (color graded)<br>
+        3. Add a title, description, and tags — then click <strong>"Save Changes"</strong> to publish to viewers<br>
+        <span style="color:var(--muted);">Tip: Use JPG/PNG. Images are stored directly in the page — keep each under 500KB for best performance.</span>
+      </div>
+      <div id="cg-editor"></div>
+      <button class="admin-btn-add" onclick="addColorGradingShot()">+ Add Shot</button>
     </div>
 
     <!-- SKILLS -->
