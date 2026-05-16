@@ -232,7 +232,8 @@ function buildDriveEmbed(driveUrl, isShort) {
     '<iframe src="' + embedUrl + '" ' +
     'style="' + style + '" ' +
     'allowfullscreen ' +
-    'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups">' +
+    'allow="autoplay; fullscreen" ' +
+    'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms">' +
     '</iframe>' +
     '<div style="position:absolute;top:0;right:0;width:70px;height:55px;z-index:10;background:#000;pointer-events:all;cursor:default;"></div>' +
     '</div>';
