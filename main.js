@@ -803,7 +803,7 @@ async function checkExportSize() {
   label.innerHTML = '⏳ Calculating…';
 
   const compressed = await compressDataImages(DATA);
-  const html  = buildExportHTML(compressed);
+  const html  = await buildExportHTML(compressed);
   const bytes = new Blob([html]).size;
   const mb    = (bytes / 1024 / 1024).toFixed(2);
   const kb    = (bytes / 1024).toFixed(0);
@@ -869,19 +869,52 @@ async function compressDataImages(data) {
   return d;
 }
 
-function buildExportHTML(exportData) {
-  var src   = document.documentElement.outerHTML;
+async function buildExportHTML(exportData) {
+  var src = document.documentElement.outerHTML;
 
-  src = src.replace(/<div id="admin-panel"[^>]*class="[^"]*open[^"]*"[^>]*>/g,
-    function(m) { return m.replace(/\bopen\b/g, '').replace(/class=" "/, 'class=""'); });
-  src = src.replace(/<div id="pwd-prompt"[^>]*class="[^"]*open[^"]*"[^>]*>/g,
-    function(m) { return m.replace(/\bopen\b/g, '').replace(/class=" "/, 'class=""'); });
+  // ── Close admin/pwd panels in export ──
+  src = src.replace(/<div id="admin-panel"([^>]*)>/g, function(m, attrs) {
+    return '<div id="admin-panel"' + attrs.replace(/\bopen\b/g, '').replace(/class="\s*"/g, 'class=""') + '>';
+  });
+  src = src.replace(/<div id="pwd-prompt"([^>]*)>/g, function(m, attrs) {
+    return '<div id="pwd-prompt"' + attrs.replace(/\bopen\b/g, '').replace(/class="\s*"/g, 'class=""') + '>';
+  });
 
-  var block = 'const DATA = ' + JSON.stringify(exportData) + ';';
-  var start = src.indexOf('const DATA = {');
-  var end   = src.indexOf('const ADMIN_PASSWORD');
-  if (start === -1 || end === -1) return src;
-  return src.slice(0, start) + block + '\n\n' + src.slice(end);
+  // ── Fetch all external JS files and inline them ──
+  var scripts = ['protection.js', 'data.js', 'main.js', 'intro.js', 'ui.js'];
+  var inlined = {};
+  for (var i = 0; i < scripts.length; i++) {
+    try {
+      var r = await fetch(scripts[i] + '?v=' + Date.now());
+      inlined[scripts[i]] = r.ok ? await r.text() : '/* ' + scripts[i] + ' not fetched */';
+    } catch(e) {
+      inlined[scripts[i]] = '/* ' + scripts[i] + ' fetch error */';
+    }
+  }
+
+  // ── Inject current DATA into the data.js content ──
+  var dataBlock = 'const DATA = ' + JSON.stringify(exportData) + ';';
+  var dataContent = inlined['data.js'] || '';
+  // Replace the existing DATA declaration in data.js
+  var dataReplaced = dataContent.replace(/const DATA\s*=\s*\{[\s\S]*?\};?\s*(?=\n|$)/, dataBlock);
+  if (dataReplaced === dataContent) {
+    // fallback: prepend the new DATA block
+    dataReplaced = dataBlock + '\n\n' + dataContent.replace(/const DATA\s*=[\s\S]*?(?=\nconst |\nvar |\nfunction |$)/, '');
+  }
+  inlined['data.js'] = dataReplaced;
+
+  // ── Replace all <script src="..."> tags with inline <script> blocks ──
+  src = src.replace(/<script\s+src="(protection\.js|data\.js|main\.js|intro\.js|ui\.js)"[^>]*><\/script>/g,
+    function(match, filename) {
+      var content = inlined[filename] || '';
+      return '<script>\n' + content + '\n</script>';
+    }
+  );
+
+  // ── Remove cursor elements that were injected into DOM (they get re-created by script) ──
+  // Keep them since the script recreates cursor logic
+
+  return src;
 }
 
 function showSizeBar(bytes, color, msg) {
@@ -908,7 +941,7 @@ async function exportHTML() {
 
   try {
     const compressed = await compressDataImages(DATA);
-    const html       = buildExportHTML(compressed);
+    const html       = await buildExportHTML(compressed);
     const bytes      = new Blob([html]).size;
 
     if (bytes > 3 * 1024 * 1024) {
@@ -1161,23 +1194,19 @@ async function publishToGitHub() {
       compressed = JSON.parse(JSON.stringify(DATA)); // fallback: uncompressed clone
     }
 
-    // ── 6. Build the HTML export ──
-    showGhStatus('⏳ Building HTML…', '#f39c12');
+    // ── 6. Build the HTML export (fetches & inlines all JS files) ──
+    showGhStatus('⏳ Building HTML — fetching scripts to inline…', '#f39c12');
     var html;
     try {
-      // Temporarily hide admin panel so it exports cleanly
-      if (adminEl) adminEl.classList.remove('open');
-      html = buildExportHTML(compressed);
-      if (adminEl) adminEl.classList.add('open');
+      html = await buildExportHTML(compressed);
     } catch(e) {
-      if (adminEl) adminEl.classList.add('open');
       showGhStatus('❌ Failed to build HTML: ' + e.message, '#e74c3c');
       publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
       return;
     }
 
-    if (!html || html.length < 100) {
-      showGhStatus('❌ HTML export came out empty. Please try again.', '#e74c3c');
+    if (!html || html.length < 500) {
+      showGhStatus('❌ HTML export came out empty or too small. Please try again.', '#e74c3c');
       publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
       return;
     }
