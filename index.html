@@ -10,7 +10,66 @@
 
   <link rel="stylesheet" href="styles.css">
 <style>
-/* ── Custom cursor enabled ── */
+/* ══════════════════════════════════════════════
+   ANIMATED CUSTOM CURSOR
+══════════════════════════════════════════════ */
+*, *::before, *::after { cursor: none !important; }
+
+#cursor-dot {
+  position: fixed;
+  top: 0; left: 0;
+  width: 10px; height: 10px;
+  background: #e8c547;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 999999;
+  transform: translate(-50%, -50%);
+  transition: width 0.18s ease, height 0.18s ease, background 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 0 8px rgba(232,197,71,0.9), 0 0 18px rgba(232,197,71,0.5);
+}
+
+#cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  width: 36px; height: 36px;
+  border: 2px solid rgba(232,197,71,0.7);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 999998;
+  transform: translate(-50%, -50%);
+  transition: width 0.28s cubic-bezier(.23,1,.32,1),
+              height 0.28s cubic-bezier(.23,1,.32,1),
+              border-color 0.28s ease,
+              box-shadow 0.28s ease,
+              opacity 0.28s ease;
+}
+
+/* Hover state — ring expands, dot shrinks */
+body.cursor-hover #cursor-dot {
+  width: 6px; height: 6px;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 4px rgba(232,197,71,0.6);
+}
+body.cursor-hover #cursor-ring {
+  width: 52px; height: 52px;
+  border-color: rgba(232,197,71,1);
+  box-shadow: 0 0 14px rgba(232,197,71,0.3);
+}
+
+/* Click state */
+body.cursor-click #cursor-dot {
+  width: 14px; height: 14px;
+  background: #fff;
+  box-shadow: 0 0 18px rgba(255,255,255,0.95);
+}
+body.cursor-click #cursor-ring {
+  width: 22px; height: 22px;
+  border-color: #e8c547;
+}
+
+/* Hide when cursor leaves window */
+body.cursor-hidden #cursor-dot,
+body.cursor-hidden #cursor-ring { opacity: 0; }
 
 /* ============================================================
    COLOR GRADING SECTION — matches existing section layout
@@ -280,6 +339,10 @@
 }
 </style>
 <body>
+
+<!-- ANIMATED CURSOR ELEMENTS -->
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
 
 <!-- PORTFOLIO INTRO — FILM COUNTDOWN EDITION -->
 <div id="portfolio-intro" title="Click to skip">
@@ -593,6 +656,72 @@
 
 <!-- Hidden edit trigger -->
 <span id="edit-trigger" style="position:fixed;bottom:0;right:0;width:48px;height:48px;background:transparent;border:none;cursor:default;z-index:500;" title=""></span>
+
+<!-- ANIMATED CURSOR SCRIPT -->
+<script>
+(function() {
+  var dot  = document.getElementById('cursor-dot');
+  var ring = document.getElementById('cursor-ring');
+  if (!dot || !ring) return;
+
+  var mouseX = window.innerWidth / 2;
+  var mouseY = window.innerHeight / 2;
+  var ringX  = mouseX;
+  var ringY  = mouseY;
+  var rafId;
+
+  /* Smooth ring follow with lerp */
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function animateRing() {
+    ringX = lerp(ringX, mouseX, 0.12);
+    ringY = lerp(ringY, mouseY, 0.12);
+    ring.style.left = ringX + 'px';
+    ring.style.top  = ringY + 'px';
+    rafId = requestAnimationFrame(animateRing);
+  }
+  animateRing();
+
+  /* Dot follows instantly */
+  document.addEventListener('mousemove', function(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    dot.style.left = e.clientX + 'px';
+    dot.style.top  = e.clientY + 'px';
+    document.body.classList.remove('cursor-hidden');
+  });
+
+  /* Hover detection on interactive elements */
+  var hoverSel = 'a, button, [onclick], input, textarea, select, label, .video-card, .cg-card, .project-card, .skill-card, .nav-cta, .btn-primary, .btn-secondary, .admin-tab, .admin-btn-remove, .admin-btn-add, .admin-save, .admin-export, #scroll-top-btn, .cg-range, .cg-lb-range';
+
+  document.addEventListener('mouseover', function(e) {
+    if (e.target.closest(hoverSel)) {
+      document.body.classList.add('cursor-hover');
+    }
+  });
+  document.addEventListener('mouseout', function(e) {
+    if (e.target.closest(hoverSel)) {
+      document.body.classList.remove('cursor-hover');
+    }
+  });
+
+  /* Click flash */
+  document.addEventListener('mousedown', function() {
+    document.body.classList.add('cursor-click');
+  });
+  document.addEventListener('mouseup', function() {
+    document.body.classList.remove('cursor-click');
+  });
+
+  /* Hide when leaving window */
+  document.addEventListener('mouseleave', function() {
+    document.body.classList.add('cursor-hidden');
+  });
+  document.addEventListener('mouseenter', function() {
+    document.body.classList.remove('cursor-hidden');
+  });
+})();
+</script>
 
 <!-- ABOUT -->
 <section id="about">
