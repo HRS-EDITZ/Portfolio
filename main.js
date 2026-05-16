@@ -228,35 +228,30 @@ function extractDriveId(url) {
 }
 
 function driveEmbedUrl(id) {
-  return id ? 'https://drive.google.com/file/d/' + id + '/preview?autoplay=0' : '';
+  return id ? 'https://drive.google.com/file/d/' + id + '/preview' : '';
 }
 
-function driveStreamUrl(id) {
-  /* This URL streams the file publicly — works for any viewer, no login needed,
-     as long as the file is shared as "Anyone with the link". */
-  return id ? 'https://drive.google.com/uc?export=download&id=' + id + '&confirm=t' : '';
+function driveViewUrl(id) {
+  return id ? 'https://drive.google.com/file/d/' + id + '/view' : '';
 }
 
 function buildDriveEmbed(driveUrl, isShort) {
   var id = extractDriveId(driveUrl);
   if (!id) return '';
-  var streamUrl = driveStreamUrl(id);
-  var previewUrl = driveEmbedUrl(id);
-
-  /* Use a native <video> element with the stream URL so ALL viewers can play
-     without being logged in. Falls back to iframe if video tag fails. */
+  var embedUrl = driveEmbedUrl(id);
+  var viewUrl  = driveViewUrl(id);
   return '<div style="position:relative;width:100%;height:100%;background:#000;">' +
-    '<video controls playsinline preload="metadata" ' +
-    'style="width:100%;height:100%;display:block;outline:none;" ' +
-    'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\';">' +
-      '<source src="' + streamUrl + '" type="video/mp4">' +
-    '</video>' +
-    /* Fallback iframe shown only if video tag fails */
-    '<iframe src="' + previewUrl + '" ' +
-    'style="width:100%;height:100%;border:none;display:none;" ' +
-    'allowfullscreen allow="autoplay; fullscreen" ' +
-    'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms">' +
+    '<iframe src="' + embedUrl + '" ' +
+    'style="width:100%;height:100%;border:none;display:block;" ' +
+    'allowfullscreen ' +
+    'allow="autoplay; fullscreen; picture-in-picture">' +
     '</iframe>' +
+    /* "Open in Drive" button — always visible so viewers can tap if iframe is blocked */
+    '<a href="' + viewUrl + '" target="_blank" rel="noopener" ' +
+    'style="position:absolute;bottom:12px;right:12px;z-index:20;' +
+    'background:rgba(0,0,0,0.75);color:#e8c547;font-family:monospace;font-size:0.72rem;' +
+    'padding:6px 12px;border-radius:3px;text-decoration:none;letter-spacing:0.05em;' +
+    'border:1px solid rgba(232,197,71,0.5);">▶ Open in Drive</a>' +
     '</div>';
 }
 
