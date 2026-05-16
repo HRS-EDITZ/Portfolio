@@ -85,12 +85,12 @@ function render() {
   setText('contact-location', DATA.location);
   setText('contact-availability', DATA.availability);
 
-  // ── VIDEO CARDS ──────────────────────────────────────────────
+
   const videosHTML = DATA.videos.length === 0
     ? '<p style="color:var(--muted);font-family:var(--font-mono);font-size:0.85rem;padding:2rem 0;">No videos yet. Open the admin panel → Videos tab to add your work.</p>'
-    : DATA.videos.map((v, i) => {
+    : DATA.videos.map((v,i) => {
         const hasVideo = !!(extractDriveId(v.afterDriveUrl || '') || extractDriveId(v.beforeDriveUrl || ''));
-        const isShort  = (v.type === 'short');
+        const isShort = (v.type === 'short');
         const hasPoster = v.posterData && v.posterData.length > 100;
         const thumbHTML = hasPoster
           ? '<img src="' + v.posterData + '" alt="' + v.title + '" style="width:100%;height:100%;object-fit:cover;">'
@@ -108,42 +108,73 @@ function render() {
           '<div class="video-cat">' + v.cat + '</div>' +
           '<div class="video-title">' + v.title + '</div>' +
           '<div class="video-desc">' + v.desc + '</div>' +
-          '<div class="video-tags">' + (v.tags || []).map(t => '<span class="video-tag">' + t + '</span>').join('') + '</div>' +
+          '<div class="video-tags">' + (v.tags||[]).map(t => '<span class="video-tag">' + t + '</span>').join('') + '</div>' +
           '</div></div>';
       }).join('');
   setHTML('videos-container', videosHTML);
 
-  const tagColors = ['tag-gold', 'tag-red', 'tag-blue', 'tag-white'];
-  setHTML('hero-tags', DATA.tags.map((t, i) => `<span class="tag ${tagColors[i % 4]}">${t}</span>`).join(''));
+  // ── COLOR GRADING ──────────────────────────────────────────
+  const cgShots = DATA.colorGrading || [];
+  const cgHTML = cgShots.length === 0
+    ? '<p style="color:var(--muted);font-family:var(--font-mono);font-size:0.85rem;padding:2rem 0;">No color grading shots yet. Open the admin panel → Color Grading tab to add your work.</p>'
+    : cgShots.map((s, i) => {
+        const hasBefore = s.beforeData && s.beforeData.length > 50;
+        const hasAfter  = s.afterData  && s.afterData.length  > 50;
+        if (!hasBefore && !hasAfter) {
+          return '<div class="cg-card" style="opacity:0.4;pointer-events:none;">' +
+            '<div class="cg-slider-wrap" style="display:flex;align-items:center;justify-content:center;"><span style="color:var(--muted);font-family:var(--font-mono);font-size:0.8rem;">No images yet</span></div>' +
+            '<div class="cg-info"><div class="cg-shot-cat">' + (s.cat||'Color Grading') + '</div>' +
+            '<div class="cg-shot-title">' + (s.title||'Untitled Shot') + '</div></div></div>';
+        }
+        return '<div class="cg-card" onclick="openCGLightbox(' + i + ')">' +
+          '<div class="cg-slider-wrap" id="cg-card-wrap-' + i + '">' +
+          '<div class="cg-img-before" style="background-image:url(\'' + (hasBefore ? s.beforeData : s.afterData) + '\')"></div>' +
+          '<div class="cg-img-after"  id="cg-after-' + i + '" style="background-image:url(\'' + (hasAfter  ? s.afterData  : s.beforeData) + '\')"></div>' +
+          '<input type="range" class="cg-range" min="0" max="100" value="50" ' +
+            'oninput="moveCGSlider(this,' + i + ')" onclick="event.stopPropagation()">' +
+          '<div class="cg-divider" id="cg-div-' + i + '"></div>' +
+          '<div class="cg-label cg-label-before">BEFORE</div>' +
+          '<div class="cg-label cg-label-after">AFTER</div>' +
+          '</div>' +
+          '<div class="cg-info">' +
+          '<div class="cg-shot-cat">' + (s.cat||'Color Grading') + '</div>' +
+          '<div class="cg-shot-title">' + (s.title||'Untitled Shot') + '</div>' +
+          (s.desc ? '<div class="cg-shot-desc">' + s.desc + '</div>' : '') +
+          '<div class="cg-tags">' + (s.tags||[]).map(t => '<span class="cg-tag">' + t + '</span>').join('') + '</div>' +
+          '</div></div>';
+      }).join('');
+  setHTML('cg-container', cgHTML);
+  const tagColors = ['tag-gold','tag-red','tag-blue','tag-white'];
+  setHTML('hero-tags', DATA.tags.map((t,i)=>`<span class="tag ${tagColors[i%4]}">${t}</span>`).join(''));
 
-  setHTML('about-pills', DATA.pills.map(p => `<span class="pill">${p}</span>`).join(''));
+  setHTML('about-pills', DATA.pills.map(p=>`<span class="pill">${p}</span>`).join(''));
 
-  const sc = ['s1', 's2', 's3', 's4'];
-  setHTML('skills-container', DATA.skills.map((s, i) => `
-    <div class="skill-card ${sc[i % 4]}">
-      <div class="skill-num">0${i + 1}</div>
+  const sc = ['s1','s2','s3','s4'];
+  setHTML('skills-container', DATA.skills.map((s,i)=>`
+    <div class="skill-card ${sc[i%4]}">
+      <div class="skill-num">0${i+1}</div>
       <div class="skill-icon">${s.icon}</div>
       <div class="skill-title">${s.title}</div>
       <div class="skill-desc">${s.desc}</div>
-      <div class="skill-items">${s.items.map(it => `<span class="skill-item">${it}</span>`).join('')}</div>
+      <div class="skill-items">${s.items.map(it=>`<span class="skill-item">${it}</span>`).join('')}</div>
     </div>`).join(''));
 
-  const thumbs = ['t1', 't2', 't3', 't4'];
-  setHTML('projects-container', DATA.projects.map((p, i) => `
+  const thumbs = ['t1','t2','t3','t4'];
+  setHTML('projects-container', DATA.projects.map((p,i)=>`
     <div class="project-card">
-      <div class="project-thumb ${thumbs[i % 4]}">
+      <div class="project-thumb ${thumbs[i%4]}">
         <span>${p.emoji}</span>
-        <span class="project-thumb-label">PROJECT ${String(i + 1).padStart(2, '0')}</span>
+        <span class="project-thumb-label">PROJECT ${String(i+1).padStart(2,'0')}</span>
       </div>
       <div class="project-body">
         <div class="project-cat">${p.cat}</div>
         <div class="project-title">${p.title}</div>
         <div class="project-desc">${p.desc}</div>
-        <div class="project-tags">${p.tags.map(t => `<span class="project-tag">${t}</span>`).join('')}</div>
+        <div class="project-tags">${p.tags.map(t=>`<span class="project-tag">${t}</span>`).join('')}</div>
       </div>
     </div>`).join(''));
 
-  setHTML('exp-container', DATA.experience.map(e => `
+  setHTML('exp-container', DATA.experience.map(e=>`
     <div class="exp-item">
       <div class="exp-year">${e.year}</div>
       <div>
@@ -153,14 +184,14 @@ function render() {
       </div>
     </div>`).join(''));
 
-  setHTML('edu-container', DATA.education.map(e => `
+  setHTML('edu-container', DATA.education.map(e=>`
     <div class="edu-card">
       <div class="edu-degree">${e.degree}</div>
       <div class="edu-school">${e.school}</div>
       <div class="edu-year">${e.year}</div>
     </div>`).join(''));
 
-  setHTML('testi-container', DATA.testimonials.map(t => `
+  setHTML('testi-container', DATA.testimonials.map(t=>`
     <div class="testi-card">
       <div class="testi-text">${t.text}</div>
       <div class="testi-author">
@@ -175,10 +206,6 @@ function render() {
 
 render();
 
-
-/* ================================================================
-   VIDEO LIGHTBOX — Google Drive embed
-================================================================ */
 
 function extractDriveId(url) {
   if (!url) return '';
@@ -198,7 +225,9 @@ function buildDriveEmbed(driveUrl, isShort) {
   var id = extractDriveId(driveUrl);
   if (!id) return '';
   var embedUrl = driveEmbedUrl(id);
-  var style = 'width:100%;height:100%;border:none;display:block;';
+  var style = isShort
+    ? 'width:100%;height:100%;border:none;display:block;'
+    : 'width:100%;height:100%;border:none;display:block;';
   return '<div style="position:relative;width:100%;height:100%;">' +
     '<iframe src="' + embedUrl + '" ' +
     'style="' + style + '" ' +
@@ -213,8 +242,8 @@ var _lbIdx = 0;
 
 function openLightbox(i) {
   _lbIdx = i;
-  var v        = DATA.videos[i];
-  var isShort  = (v.type === 'short');
+  var v = DATA.videos[i];
+  var isShort = (v.type === 'short');
   var frame    = document.getElementById('video-lightbox-frame');
   var lbInner  = document.getElementById('video-lightbox-inner');
   var tabBar   = document.getElementById('lb-tab-bar');
@@ -251,8 +280,8 @@ function openLightbox(i) {
 }
 
 function switchLightboxVideo(type, i) {
-  var v         = DATA.videos[i];
-  var isShort   = (v.type === 'short');
+  var v = DATA.videos[i];
+  var isShort = (v.type === 'short');
   var beforeBtn = document.getElementById('lb-before-btn');
   var afterBtn  = document.getElementById('lb-after-btn');
   var frame     = document.getElementById('video-lightbox-frame');
@@ -278,13 +307,53 @@ function closeLightbox() {
 document.getElementById('video-lightbox').addEventListener('click', function(e) {
   if (e.target === this) closeLightbox();
 });
-document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeLightbox(); });
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeLightbox(); closeCGLightbox(); }
+});
+/* ═══════════════════════════════════════════════════════
+   COLOR GRADING — card slider + lightbox
+═══════════════════════════════════════════════════════ */
+function moveCGSlider(input, i) {
+  var pct = input.value;
+  var afterEl = document.getElementById('cg-after-' + i);
+  var divEl   = document.getElementById('cg-div-'   + i);
+  if (afterEl) afterEl.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
+  if (divEl)   divEl.style.left = pct + '%';
+}
 
+function openCGLightbox(i) {
+  var s = (DATA.colorGrading || [])[i];
+  if (!s) return;
+  var hasBefore = s.beforeData && s.beforeData.length > 50;
+  var hasAfter  = s.afterData  && s.afterData.length  > 50;
+  document.getElementById('cg-lb-before').style.backgroundImage = 'url(\'' + (hasBefore ? s.beforeData : '') + '\')';
+  document.getElementById('cg-lb-after').style.backgroundImage  = 'url(\'' + (hasAfter  ? s.afterData  : '') + '\')';
+  document.getElementById('cg-lb-after').style.clipPath = 'inset(0 50% 0 0)';
+  document.getElementById('cg-lb-divider').style.left = '50%';
+  document.getElementById('cg-lb-range').value = 50;
+  document.getElementById('cg-lightbox-title').textContent = s.title || '';
+  document.getElementById('cg-lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
 
-/* ================================================================
-   NAV DRAWER
-================================================================ */
+function closeCGLightbox() {
+  document.getElementById('cg-lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
 
+document.getElementById('cg-lightbox').addEventListener('click', function(e) {
+  if (e.target === this) closeCGLightbox();
+});
+
+(function initCGLbSlider() {
+  var range = document.getElementById('cg-lb-range');
+  if (!range) return;
+  range.addEventListener('input', function() {
+    var pct = this.value;
+    document.getElementById('cg-lb-after').style.clipPath    = 'inset(0 ' + (100-pct) + '% 0 0)';
+    document.getElementById('cg-lb-divider').style.left = pct + '%';
+  });
+})();
 function openDrawer() {
   document.getElementById('nav-drawer').classList.add('open');
   document.getElementById('nav-overlay').classList.add('open');
@@ -313,38 +382,6 @@ function updateDrawerLogo() {
 }
 
 
-/* ================================================================
-   CUSTOM CURSOR
-================================================================ */
-
-const dot    = document.getElementById('cursor-dot');
-const ring   = document.getElementById('cursor-ring');
-const ringEl = document.getElementById('cursor-ring-el');
-if (!('ontouchstart' in window) && navigator.maxTouchPoints === 0) {
-  if (dot && ring) {
-    document.addEventListener('mousemove', e => {
-      dot.style.left  = e.clientX + 'px';
-      dot.style.top   = e.clientY + 'px';
-      ring.style.left = e.clientX + 'px';
-      ring.style.top  = e.clientY + 'px';
-    });
-  }
-  if (ringEl) {
-    document.querySelectorAll('a,button,.project-card,.skill-card').forEach(el => {
-      el.addEventListener('mouseenter', () => ringEl.classList.add('expand'));
-      el.addEventListener('mouseleave', () => ringEl.classList.remove('expand'));
-    });
-  }
-} else {
-  if (dot)  dot.style.display  = 'none';
-  if (ring) ring.style.display = 'none';
-}
-
-
-/* ================================================================
-   LOGO UPLOAD / REMOVE
-================================================================ */
-
 function handleLogoUpload(input) {
   var file = input.files[0];
   if (!file) return;
@@ -354,9 +391,9 @@ function handleLogoUpload(input) {
     var previewWrap = document.getElementById('logo-preview-wrap');
     var previewImg  = document.getElementById('admin-logo-preview');
     var removeBtn   = document.getElementById('logo-remove-btn');
-    if (previewImg)  previewImg.src = DATA.brandLogo;
+    if (previewImg) previewImg.src = DATA.brandLogo;
     if (previewWrap) previewWrap.style.display = 'block';
-    if (removeBtn)   removeBtn.style.display   = 'inline-block';
+    if (removeBtn) removeBtn.style.display = 'inline-block';
     render();
     input.value = '';
   };
@@ -368,22 +405,25 @@ function removeBrandLogo() {
   var previewWrap = document.getElementById('logo-preview-wrap');
   var removeBtn   = document.getElementById('logo-remove-btn');
   previewWrap.style.display = 'none';
-  removeBtn.style.display   = 'none';
+  removeBtn.style.display = 'none';
   render();
 }
 
-
-/* ================================================================
-   ADMIN PANEL — password / open / close / tabs
-================================================================ */
-
+/* ── Admin trigger: triple-click the dot OR press Ctrl+Shift+E ── */
 let clickCount = 0, clickTimer;
 const _editTrigger = document.getElementById('edit-trigger');
-if (_editTrigger) _editTrigger.addEventListener('click', () => {
-  clickCount++;
-  clearTimeout(clickTimer);
-  clickTimer = setTimeout(() => { clickCount = 0; }, 1500);
-  if (clickCount >= 3) { clickCount = 0; openPwd(); }
+if (_editTrigger) {
+  _editTrigger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    clickCount++;
+    clearTimeout(clickTimer);
+    clickTimer = setTimeout(function() { clickCount = 0; }, 2000);
+    if (clickCount >= 3) { clickCount = 0; openPwd(); }
+  });
+}
+/* Keyboard shortcut: Ctrl + Shift + E */
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.shiftKey && e.key === 'E') { e.preventDefault(); openPwd(); }
 });
 
 function openPwd() {
@@ -398,23 +438,21 @@ function checkPwd() {
   else { document.getElementById('pwd-err').style.display = 'block'; }
 }
 const _pwdInput = document.getElementById('pwd-input');
-if (_pwdInput) _pwdInput.addEventListener('keydown', e => { if (e.key === 'Enter') checkPwd(); });
+if (_pwdInput) _pwdInput.addEventListener('keydown', e => { if(e.key==='Enter') checkPwd(); });
 
-function openAdmin()  { populateAdmin(); document.getElementById('admin-panel').classList.add('open'); }
+function openAdmin() { populateAdmin(); document.getElementById('admin-panel').classList.add('open'); }
 function closeAdmin() { document.getElementById('admin-panel').classList.remove('open'); }
-function switchTab(name) {
+function switchTab(name, clickedEl) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
+  var tabBtn = clickedEl || (typeof event !== 'undefined' && event && event.target) || null;
+  if (!tabBtn) tabBtn = document.querySelector('.admin-tab[onclick*="\'' + name + '\'"]') || document.querySelector('.admin-tab[onclick*=\'"' + name + '"\']');
+  if (tabBtn) tabBtn.classList.add('active');
   document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
+  var sec = document.getElementById('tab-' + name);
+  if (sec) sec.classList.add('active');
 }
-function set(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
-function get(id)      { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
-
-
-/* ================================================================
-   ADMIN — POPULATE FIELDS
-================================================================ */
+function set(id,val) { const el=document.getElementById(id); if(el) el.value=val; }
+function get(id) { const el=document.getElementById(id); return el ? el.value.trim() : ''; }
 
 function populateAdmin() {
   var previewWrap = document.getElementById('logo-preview-wrap');
@@ -423,35 +461,32 @@ function populateAdmin() {
   if (DATA.brandLogo && DATA.brandLogo.length > 50) {
     previewImg.src = DATA.brandLogo;
     previewWrap.style.display = 'block';
-    removeBtn.style.display   = 'inline-block';
+    removeBtn.style.display = 'inline-block';
   } else {
     previewWrap.style.display = 'none';
-    removeBtn.style.display   = 'none';
+    removeBtn.style.display = 'none';
   }
 
   set('edit-name', DATA.name); set('edit-badge', DATA.badge);
   set('edit-h1-line1', DATA.h1line1); set('edit-h1-line2', DATA.h1line2); set('edit-h1-line3', DATA.h1line3);
   set('edit-tagline', DATA.tagline); set('edit-tags', DATA.tags.join(', '));
-  set('edit-s1n', DATA.stat1n); set('edit-s1l', DATA.stat1l);
-  set('edit-s2n', DATA.stat2n); set('edit-s2l', DATA.stat2l);
-  set('edit-s3n', DATA.stat3n); set('edit-s3l', DATA.stat3l);
+  set('edit-s1n',DATA.stat1n); set('edit-s1l',DATA.stat1l);
+  set('edit-s2n',DATA.stat2n); set('edit-s2l',DATA.stat2l);
+  set('edit-s3n',DATA.stat3n); set('edit-s3l',DATA.stat3l);
   set('edit-avatar', DATA.avatar); set('edit-visual-label', DATA.visualLabel);
   set('edit-about-heading', DATA.aboutHeading);
   set('edit-about-p1', DATA.aboutP1); set('edit-about-p2', DATA.aboutP2);
   set('edit-pills', DATA.pills.join(', '));
   set('edit-email', DATA.email); set('edit-location', DATA.location);
   set('edit-avail', DATA.availability); set('edit-contact-tagline', DATA.contactTagline);
-  set('edit-ejs-pubkey',  DATA.emailjsPublicKey);
+  set('edit-ejs-pubkey', DATA.emailjsPublicKey);
   set('edit-ejs-service', DATA.emailjsServiceId);
   set('edit-ejs-template', DATA.emailjsTemplateId);
   renderVideoEditor();
+  renderCGEditor();
   renderSkillsEditor(); renderProjectsEditor(); renderExpEditor(); renderEduEditor(); renderTestiEditor();
 }
 
-
-/* ================================================================
-   ADMIN — VIDEO EDITOR
-================================================================ */
 
 function renderVideoEditor() {
   const c = document.getElementById('videos-editor');
@@ -472,25 +507,25 @@ function renderVideoEditor() {
     c.innerHTML +=
       '<div class="admin-card" id="vid-card-' + i + '">' +
       '<div class="admin-card-header">' +
-      '<span class="admin-card-title">Video ' + (i + 1) + ': ' + v.title + '</span>' +
+      '<span class="admin-card-title">Video ' + (i+1) + ': ' + v.title + '</span>' +
       '<button class="admin-btn-remove" onclick="removeVideo(' + i + ')">Remove</button>' +
       '</div>' +
 
       '<div class="form-group">' +
       '<label>🎞️ Before Edit — Google Drive Share Link</label>' +
-      '<input type="text" id="vid-before-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + (v.beforeDriveUrl || '') + '" oninput="previewDriveLink(\'before\',' + i + ')">' +
+      '<input type="text" id="vid-before-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + (v.beforeDriveUrl || '') + '" oninput="previewDriveLink(&apos;before&apos;,' + i + ')">' +
       '<div id="vid-before-preview-' + i + '">' + beforeIdHtml + '</div>' +
       '</div>' +
 
       '<div class="form-group">' +
       '<label>✨ After Edit — Google Drive Share Link</label>' +
-      '<input type="text" id="vid-after-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + (v.afterDriveUrl || '') + '" oninput="previewDriveLink(\'after\',' + i + ')">' +
+      '<input type="text" id="vid-after-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + (v.afterDriveUrl || '') + '" oninput="previewDriveLink(&apos;after&apos;,' + i + ')">' +
       '<div id="vid-after-preview-' + i + '">' + afterIdHtml + '</div>' +
       '</div>' +
 
       '<div class="form-group">' +
       '<label>🖼️ Thumbnail Image (optional — shown on video card)</label>' +
-      '<div class="vid-upload-area" id="vid-poster-area-' + i + '" onclick="document.getElementById(\'vid-poster-' + i + '\').click()">' +
+      '<div class="vid-upload-area" id="vid-poster-area-' + i + '" onclick="document.getElementById(&apos;vid-poster-&apos;+' + i + '+&apos;&apos;).click()">' +
       (hasPoster
         ? '<span style="color:var(--accent)">✅ Thumbnail uploaded</span>'
         : '<span>🖼️ Click to upload thumbnail (JPG/PNG)</span>') +
@@ -499,27 +534,27 @@ function renderVideoEditor() {
       '</div>' +
 
       '<div class="form-row">' +
-      '<div class="form-group"><label>Category</label><input type="text" id="vid-cat-' + i + '" value="' + (v.cat || '') + '"></div>' +
-      '<div class="form-group"><label>Title</label><input type="text" id="vid-title-' + i + '" value="' + (v.title || '') + '"></div>' +
+      '<div class="form-group"><label>Category</label><input type="text" id="vid-cat-' + i + '" value="' + (v.cat||'') + '"></div>' +
+      '<div class="form-group"><label>Title</label><input type="text" id="vid-title-' + i + '" value="' + (v.title||'') + '"></div>' +
       '</div>' +
       '<div class="form-row">' +
       '<div class="form-group"><label>📐 Video Type</label>' +
       '<select id="vid-type-' + i + '" style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:2px;padding:0.8rem 1rem;color:var(--text);font-family:var(--font-body);font-size:0.88rem;outline:none;">' +
-      '<option value="video"' + ((!v.type || v.type === 'video') ? ' selected' : '') + '>🎬 Video (16:9 landscape)</option>' +
-      '<option value="short"' + (v.type === 'short' ? ' selected' : '') + '>📱 Short / Reel (9:16 portrait)</option>' +
+      '<option value="video"' + ((!v.type || v.type==='video') ? ' selected' : '') + '>🎬 Video (16:9 landscape)</option>' +
+      '<option value="short"' + (v.type==='short' ? ' selected' : '') + '>📱 Short / Reel (9:16 portrait)</option>' +
       '</select></div>' +
-      '<div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="vid-tags-' + i + '" value="' + (v.tags || []).join(', ') + '"></div>' +
+      '<div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="vid-tags-' + i + '" value="' + (v.tags||[]).join(', ') + '"></div>' +
       '</div>' +
-      '<div class="form-group"><label>Description</label><textarea id="vid-desc-' + i + '" rows="2">' + (v.desc || '') + '</textarea></div>' +
+      '<div class="form-group"><label>Description</label><textarea id="vid-desc-' + i + '" rows="2">' + (v.desc||'') + '</textarea></div>' +
       '</div>';
   });
 }
 
 function previewDriveLink(type, i) {
-  var inputId   = 'vid-' + type + '-url-' + i;
+  var inputId = 'vid-' + type + '-url-' + i;
   var previewId = 'vid-' + type + '-preview-' + i;
-  var url       = document.getElementById(inputId).value.trim();
-  var id        = extractDriveId(url);
+  var url = document.getElementById(inputId).value.trim();
+  var id = extractDriveId(url);
   var previewEl = document.getElementById(previewId);
   if (id) {
     previewEl.innerHTML = '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID detected: ' + id + '</div>';
@@ -533,7 +568,7 @@ function previewDriveLink(type, i) {
 function handlePosterFile(event, i) {
   const file = event.target.files[0];
   if (!file) return;
-  const area   = document.getElementById('vid-poster-area-' + i);
+  const area = document.getElementById('vid-poster-area-' + i);
   const reader = new FileReader();
   reader.onload = function(e) {
     DATA.videos[i].posterData = e.target.result;
@@ -545,132 +580,207 @@ function handlePosterFile(event, i) {
 function removeVideo(i) { DATA.videos.splice(i, 1); renderVideoEditor(); }
 
 function addVideo() {
-  DATA.videos.push({ title: 'My Video', cat: 'Category', desc: 'Describe this video.', tags: ['CapCut'], type: 'video', beforeDriveUrl: '', afterDriveUrl: '', posterData: '' });
+  DATA.videos.push({title:'My Video',cat:'Category',desc:'Describe this video.',tags:['CapCut'],type:'video',beforeDriveUrl:'',afterDriveUrl:'',posterData:''});
   renderVideoEditor();
   setTimeout(() => {
     const cards = document.querySelectorAll('#videos-editor .admin-card');
-    if (cards.length) cards[cards.length - 1].scrollIntoView({ behavior: 'smooth' });
+    if (cards.length) cards[cards.length-1].scrollIntoView({behavior:'smooth'});
   }, 100);
 }
 
-
-/* ================================================================
-   ADMIN — SKILLS / PROJECTS / EXPERIENCE / EDUCATION / TESTIMONIALS
-================================================================ */
-
 function renderSkillsEditor() {
   const c = document.getElementById('skills-editor'); c.innerHTML = '';
-  DATA.skills.forEach((s, i) => {
-    c.innerHTML += `<div class="admin-card"><div class="admin-card-header"><span class="admin-card-title">Skill ${i + 1}: ${s.title}</span><button class="admin-btn-remove" onclick="removeSkill(${i})">Remove</button></div>
+  DATA.skills.forEach((s,i) => {
+    c.innerHTML += `<div class="admin-card"><div class="admin-card-header"><span class="admin-card-title">Skill ${i+1}: ${s.title}</span><button class="admin-btn-remove" onclick="removeSkill(${i})">Remove</button></div>
       <div class="form-row"><div class="form-group"><label>Icon (emoji)</label><input type="text" id="sk-icon-${i}" value="${s.icon}"></div><div class="form-group"><label>Title</label><input type="text" id="sk-title-${i}" value="${s.title}"></div></div>
       <div class="form-group"><label>Description</label><textarea id="sk-desc-${i}" rows="2">${s.desc}</textarea></div>
       <div class="form-group"><label>Items (comma-separated)</label><input type="text" id="sk-items-${i}" value="${s.items.join(', ')}"></div></div>`;
   });
 }
-function removeSkill(i)  { DATA.skills.splice(i, 1); renderSkillsEditor(); }
-function addSkillCard()  { DATA.skills.push({ icon: '⭐', title: 'New Skill', desc: 'Description.', items: ['Tool 1'] }); renderSkillsEditor(); }
+function removeSkill(i) { DATA.skills.splice(i,1); renderSkillsEditor(); }
+function addSkillCard() { DATA.skills.push({icon:'⭐',title:'New Skill',desc:'Description.',items:['Tool 1']}); renderSkillsEditor(); }
 
 function renderProjectsEditor() {
   const c = document.getElementById('projects-editor'); c.innerHTML = '';
-  DATA.projects.forEach((p, i) => {
-    c.innerHTML += `<div class="admin-card"><div class="admin-card-header"><span class="admin-card-title">Project ${i + 1}: ${p.title}</span><button class="admin-btn-remove" onclick="removeProject(${i})">Remove</button></div>
+  DATA.projects.forEach((p,i) => {
+    c.innerHTML += `<div class="admin-card"><div class="admin-card-header"><span class="admin-card-title">Project ${i+1}: ${p.title}</span><button class="admin-btn-remove" onclick="removeProject(${i})">Remove</button></div>
       <div class="form-row"><div class="form-group"><label>Emoji</label><input type="text" id="pj-emoji-${i}" value="${p.emoji}"></div><div class="form-group"><label>Category</label><input type="text" id="pj-cat-${i}" value="${p.cat}"></div></div>
       <div class="form-group"><label>Title</label><input type="text" id="pj-title-${i}" value="${p.title}"></div>
       <div class="form-group"><label>Description</label><textarea id="pj-desc-${i}" rows="2">${p.desc}</textarea></div>
       <div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="pj-tags-${i}" value="${p.tags.join(', ')}"></div></div>`;
   });
 }
-function removeProject(i) { DATA.projects.splice(i, 1); renderProjectsEditor(); }
-function addProject()     { DATA.projects.push({ emoji: '🎬', cat: 'Category', title: 'New Project', desc: 'Description.', tags: ['Tag'] }); renderProjectsEditor(); }
+function removeProject(i) { DATA.projects.splice(i,1); renderProjectsEditor(); }
+function addProject() { DATA.projects.push({emoji:'🎬',cat:'Category',title:'New Project',desc:'Description.',tags:['Tag']}); renderProjectsEditor(); }
 
 function renderExpEditor() {
   const c = document.getElementById('exp-editor'); c.innerHTML = '';
-  DATA.experience.forEach((e, i) => {
-    c.innerHTML += `<div class="admin-card"><div class="admin-card-header"><span class="admin-card-title">Job ${i + 1}: ${e.role}</span><button class="admin-btn-remove" onclick="removeExp(${i})">Remove</button></div>
+  DATA.experience.forEach((e,i) => {
+    c.innerHTML += `<div class="admin-card"><div class="admin-card-header"><span class="admin-card-title">Job ${i+1}: ${e.role}</span><button class="admin-btn-remove" onclick="removeExp(${i})">Remove</button></div>
       <div class="form-row"><div class="form-group"><label>Years</label><input type="text" id="ex-year-${i}" value="${e.year}"></div><div class="form-group"><label>Company</label><input type="text" id="ex-co-${i}" value="${e.company}"></div></div>
       <div class="form-group"><label>Role</label><input type="text" id="ex-role-${i}" value="${e.role}"></div>
       <div class="form-group"><label>Description</label><textarea id="ex-desc-${i}" rows="2">${e.desc}</textarea></div></div>`;
   });
 }
-function removeExp(i) { DATA.experience.splice(i, 1); renderExpEditor(); }
-function addExp()     { DATA.experience.push({ year: '2024 — Present', role: 'New Role', company: 'Company', desc: 'Description.' }); renderExpEditor(); }
+function removeExp(i) { DATA.experience.splice(i,1); renderExpEditor(); }
+function addExp() { DATA.experience.push({year:'2024 — Present',role:'New Role',company:'Company',desc:'Description.'}); renderExpEditor(); }
 
 function renderEduEditor() {
   const c = document.getElementById('edu-editor'); c.innerHTML = '';
-  DATA.education.forEach((e, i) => {
-    c.innerHTML += `<div class="admin-card"><div class="admin-card-header"><span class="admin-card-title">Edu ${i + 1}: ${e.degree}</span><button class="admin-btn-remove" onclick="removeEdu(${i})">Remove</button></div>
+  DATA.education.forEach((e,i) => {
+    c.innerHTML += `<div class="admin-card"><div class="admin-card-header"><span class="admin-card-title">Edu ${i+1}: ${e.degree}</span><button class="admin-btn-remove" onclick="removeEdu(${i})">Remove</button></div>
       <div class="form-group"><label>Degree / Certification</label><input type="text" id="ed-deg-${i}" value="${e.degree}"></div>
       <div class="form-row"><div class="form-group"><label>Institution</label><input type="text" id="ed-school-${i}" value="${e.school}"></div><div class="form-group"><label>Year</label><input type="text" id="ed-year-${i}" value="${e.year}"></div></div></div>`;
   });
 }
-function removeEdu(i) { DATA.education.splice(i, 1); renderEduEditor(); }
-function addEdu()     { DATA.education.push({ degree: 'New Degree', school: 'Institution', year: '2024' }); renderEduEditor(); }
+function removeEdu(i) { DATA.education.splice(i,1); renderEduEditor(); }
+function addEdu() { DATA.education.push({degree:'New Degree',school:'Institution',year:'2024'}); renderEduEditor(); }
 
 function renderTestiEditor() {
   const c = document.getElementById('testi-editor'); c.innerHTML = '';
-  DATA.testimonials.forEach((t, i) => {
-    c.innerHTML += `<div class="admin-card"><div class="admin-card-header"><span class="admin-card-title">Review ${i + 1}: ${t.name}</span><button class="admin-btn-remove" onclick="removeTesti(${i})">Remove</button></div>
+  DATA.testimonials.forEach((t,i) => {
+    c.innerHTML += `<div class="admin-card"><div class="admin-card-header"><span class="admin-card-title">Review ${i+1}: ${t.name}</span><button class="admin-btn-remove" onclick="removeTesti(${i})">Remove</button></div>
       <div class="form-group"><label>Quote</label><textarea id="ts-text-${i}" rows="3">${t.text}</textarea></div>
       <div class="form-row"><div class="form-group"><label>Name</label><input type="text" id="ts-name-${i}" value="${t.name}"></div><div class="form-group"><label>Role</label><input type="text" id="ts-role-${i}" value="${t.role}"></div></div>
       <div class="form-group"><label>Initials (2 chars)</label><input type="text" id="ts-init-${i}" value="${t.initials}" maxlength="2"></div></div>`;
   });
 }
-function removeTesti(i) { DATA.testimonials.splice(i, 1); renderTestiEditor(); }
-function addTesti()     { DATA.testimonials.push({ text: 'Great work!', name: 'Client Name', role: 'Job Title', initials: 'CN' }); renderTestiEditor(); }
+function removeTesti(i) { DATA.testimonials.splice(i,1); renderTestiEditor(); }
+function addTesti() { DATA.testimonials.push({text:'Great work!',name:'Client Name',role:'Job Title',initials:'CN'}); renderTestiEditor(); }
 
+/* ═══════════════════════════════════════════════════════
+   COLOR GRADING ADMIN EDITOR
+═══════════════════════════════════════════════════════ */
+function renderCGEditor() {
+  const c = document.getElementById('cg-editor');
+  if (!c) return;
+  c.innerHTML = '';
+  if (!DATA.colorGrading) DATA.colorGrading = [];
+  DATA.colorGrading.forEach((s, i) => {
+    const hasBefore = s.beforeData && s.beforeData.length > 50;
+    const hasAfter  = s.afterData  && s.afterData.length  > 50;
+    c.innerHTML +=
+      '<div class="admin-card" id="cg-card-' + i + '">' +
+      '<div class="admin-card-header">' +
+      '<span class="admin-card-title">Shot ' + (i+1) + ': ' + (s.title||'Untitled') + '</span>' +
+      '<button class="admin-btn-remove" onclick="removeCGShot(' + i + ')">Remove</button>' +
+      '</div>' +
 
-/* ================================================================
-   ADMIN — APPLY CHANGES & SAVE
-================================================================ */
+      // Before image upload
+      '<div class="form-group">' +
+      '<label>📷 BEFORE Image (ungraded / raw)</label>' +
+      '<div class="cg-upload-area" onclick="document.getElementById(\'cg-before-file-' + i + '\').click()">' +
+      (hasBefore ? '<span style="color:var(--accent)">✅ Before image uploaded</span>' : '<span>📁 Click to upload BEFORE image (JPG/PNG)</span>') +
+      '</div>' +
+      (hasBefore ? '<div class="cg-preview-strip"><img class="cg-preview-img" src="' + s.beforeData + '" alt="before"></div>' : '') +
+      '<input type="file" id="cg-before-file-' + i + '" accept="image/*" style="display:none" onchange="handleCGImageFile(event,' + i + ',\'before\')">' +
+      '</div>' +
+
+      // After image upload
+      '<div class="form-group">' +
+      '<label>✨ AFTER Image (color graded)</label>' +
+      '<div class="cg-upload-area" onclick="document.getElementById(\'cg-after-file-' + i + '\').click()">' +
+      (hasAfter  ? '<span style="color:var(--accent)">✅ After image uploaded</span>'  : '<span>📁 Click to upload AFTER image (JPG/PNG)</span>') +
+      '</div>' +
+      (hasAfter ? '<div class="cg-preview-strip"><img class="cg-preview-img" src="' + s.afterData + '" alt="after"></div>' : '') +
+      '<input type="file" id="cg-after-file-' + i + '" accept="image/*" style="display:none" onchange="handleCGImageFile(event,' + i + ',\'after\')">' +
+      '</div>' +
+
+      // Meta fields
+      '<div class="form-row">' +
+      '<div class="form-group"><label>Category</label><input type="text" id="cg-cat-' + i + '" value="' + (s.cat||'Color Grading') + '"></div>' +
+      '<div class="form-group"><label>Title</label><input type="text" id="cg-title-' + i + '" value="' + (s.title||'') + '"></div>' +
+      '</div>' +
+      '<div class="form-group"><label>Description</label><textarea id="cg-desc-' + i + '" rows="2">' + (s.desc||'') + '</textarea></div>' +
+      '<div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="cg-tags-' + i + '" value="' + (s.tags||[]).join(', ') + '"></div>' +
+      '</div>';
+  });
+}
+
+function handleCGImageFile(event, i, type) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    if (type === 'before') DATA.colorGrading[i].beforeData = e.target.result;
+    else                   DATA.colorGrading[i].afterData  = e.target.result;
+    renderCGEditor();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeCGShot(i) {
+  DATA.colorGrading.splice(i, 1);
+  renderCGEditor();
+}
+
+function addColorGradingShot() {
+  if (!DATA.colorGrading) DATA.colorGrading = [];
+  DATA.colorGrading.push({ cat:'Color Grading', title:'New Shot', desc:'', tags:['LUT','Grade'], beforeData:'', afterData:'' });
+  renderCGEditor();
+  setTimeout(() => {
+    const cards = document.querySelectorAll('#cg-editor .admin-card');
+    if (cards.length) cards[cards.length-1].scrollIntoView({behavior:'smooth'});
+  }, 100);
+}
 
 function applyChanges() {
-  DATA.name    = get('edit-name');
-  DATA.badge   = get('edit-badge');
+  DATA.name = get('edit-name');
+  DATA.badge = get('edit-badge');
   DATA.h1line1 = get('edit-h1-line1'); DATA.h1line2 = get('edit-h1-line2'); DATA.h1line3 = get('edit-h1-line3');
   DATA.tagline = get('edit-tagline');
-  DATA.tags    = get('edit-tags').split(',').map(s => s.trim()).filter(Boolean);
+  DATA.tags = get('edit-tags').split(',').map(s=>s.trim()).filter(Boolean);
   DATA.stat1n = get('edit-s1n'); DATA.stat1l = get('edit-s1l');
   DATA.stat2n = get('edit-s2n'); DATA.stat2l = get('edit-s2l');
   DATA.stat3n = get('edit-s3n'); DATA.stat3l = get('edit-s3l');
-  DATA.avatar       = get('edit-avatar'); DATA.visualLabel = get('edit-visual-label');
+  DATA.avatar = get('edit-avatar'); DATA.visualLabel = get('edit-visual-label');
   DATA.aboutHeading = get('edit-about-heading');
   DATA.aboutP1 = get('edit-about-p1'); DATA.aboutP2 = get('edit-about-p2');
-  DATA.pills   = get('edit-pills').split(',').map(s => s.trim()).filter(Boolean);
-  DATA.email   = get('edit-email'); DATA.location = get('edit-location');
-  DATA.availability   = get('edit-avail'); DATA.contactTagline = get('edit-contact-tagline');
-  DATA.emailjsPublicKey  = get('edit-ejs-pubkey');
-  DATA.emailjsServiceId  = get('edit-ejs-service');
+  DATA.pills = get('edit-pills').split(',').map(s=>s.trim()).filter(Boolean);
+  DATA.email = get('edit-email'); DATA.location = get('edit-location');
+  DATA.availability = get('edit-avail'); DATA.contactTagline = get('edit-contact-tagline');
+  DATA.emailjsPublicKey = get('edit-ejs-pubkey');
+  DATA.emailjsServiceId = get('edit-ejs-service');
   DATA.emailjsTemplateId = get('edit-ejs-template');
 
-  DATA.videos = DATA.videos.map((v, i) => ({
-    beforeDriveUrl: (document.getElementById('vid-before-url-' + i) ? document.getElementById('vid-before-url-' + i).value.trim() : (v.beforeDriveUrl || '')),
-    afterDriveUrl:  (document.getElementById('vid-after-url-' + i)  ? document.getElementById('vid-after-url-' + i).value.trim()  : (v.afterDriveUrl  || '')),
+  DATA.videos = DATA.videos.map((v,i)=>({
+    beforeDriveUrl: (document.getElementById('vid-before-url-'+i) ? document.getElementById('vid-before-url-'+i).value.trim() : (v.beforeDriveUrl||'')),
+    afterDriveUrl:  (document.getElementById('vid-after-url-'+i)  ? document.getElementById('vid-after-url-'+i).value.trim()  : (v.afterDriveUrl||'')),
     posterData: v.posterData || '',
-    type:  (document.getElementById('vid-type-' + i)  ? document.getElementById('vid-type-' + i).value  : (v.type  || 'video')),
-    cat:   get('vid-cat-'   + i),
-    title: get('vid-title-' + i),
-    desc:  get('vid-desc-'  + i),
-    tags:  get('vid-tags-'  + i).split(',').map(s => s.trim()).filter(Boolean)
+    type: (document.getElementById('vid-type-'+i) ? document.getElementById('vid-type-'+i).value : (v.type||'video')),
+    cat: get('vid-cat-'+i),
+    title: get('vid-title-'+i),
+    desc: get('vid-desc-'+i),
+    tags: get('vid-tags-'+i).split(',').map(s=>s.trim()).filter(Boolean)
   }));
-  DATA.skills = DATA.skills.map((_, i) => ({
-    icon:  get(`sk-icon-${i}`),  title: get(`sk-title-${i}`),
-    desc:  get(`sk-desc-${i}`),  items: get(`sk-items-${i}`).split(',').map(s => s.trim()).filter(Boolean)
+  if (!DATA.colorGrading) DATA.colorGrading = [];
+  DATA.colorGrading = DATA.colorGrading.map((s,i)=>({
+    cat:        get('cg-cat-'+i)   || 'Color Grading',
+    title:      get('cg-title-'+i) || 'Untitled Shot',
+    desc:       get('cg-desc-'+i)  || '',
+    tags:       get('cg-tags-'+i).split(',').map(t=>t.trim()).filter(Boolean),
+    beforeData: s.beforeData || '',
+    afterData:  s.afterData  || ''
   }));
-  DATA.projects = DATA.projects.map((_, i) => ({
-    emoji: get(`pj-emoji-${i}`), cat:   get(`pj-cat-${i}`),
-    title: get(`pj-title-${i}`), desc:  get(`pj-desc-${i}`),
-    tags:  get(`pj-tags-${i}`).split(',').map(s => s.trim()).filter(Boolean)
+  DATA.skills = DATA.skills.map((_,i)=>({
+    icon: get(`sk-icon-${i}`), title: get(`sk-title-${i}`),
+    desc: get(`sk-desc-${i}`), items: get(`sk-items-${i}`).split(',').map(s=>s.trim()).filter(Boolean)
   }));
-  DATA.experience = DATA.experience.map((_, i) => ({
-    year:    get(`ex-year-${i}`), company: get(`ex-co-${i}`),
-    role:    get(`ex-role-${i}`), desc:    get(`ex-desc-${i}`)
+  DATA.projects = DATA.projects.map((_,i)=>({
+    emoji: get(`pj-emoji-${i}`), cat: get(`pj-cat-${i}`),
+    title: get(`pj-title-${i}`), desc: get(`pj-desc-${i}`),
+    tags: get(`pj-tags-${i}`).split(',').map(s=>s.trim()).filter(Boolean)
   }));
-  DATA.education = DATA.education.map((_, i) => ({
+  DATA.experience = DATA.experience.map((_,i)=>({
+    year: get(`ex-year-${i}`), company: get(`ex-co-${i}`),
+    role: get(`ex-role-${i}`), desc: get(`ex-desc-${i}`)
+  }));
+  DATA.education = DATA.education.map((_,i)=>({
     degree: get(`ed-deg-${i}`), school: get(`ed-school-${i}`), year: get(`ed-year-${i}`)
   }));
-  DATA.testimonials = DATA.testimonials.map((_, i) => ({
-    text:     get(`ts-text-${i}`), name:     get(`ts-name-${i}`),
-    role:     get(`ts-role-${i}`), initials: get(`ts-init-${i}`)
+  DATA.testimonials = DATA.testimonials.map((_,i)=>({
+    text: get(`ts-text-${i}`), name: get(`ts-name-${i}`),
+    role: get(`ts-role-${i}`), initials: get(`ts-init-${i}`)
   }));
 
   render();
@@ -686,20 +796,15 @@ function applyChanges() {
   });
 }
 
-
-/* ================================================================
-   EXPORT — size check / compress / build HTML
-================================================================ */
-
 async function checkExportSize() {
   applyChanges();
   const bar   = document.getElementById('export-size-bar');
   const label = document.getElementById('export-size-label');
   bar.style.display = 'block';
-  label.innerHTML   = '⏳ Calculating…';
+  label.innerHTML = '⏳ Calculating…';
 
   const compressed = await compressDataImages(DATA);
-  const html  = buildExportHTML(compressed);
+  const html  = await buildExportHTML(compressed);
   const bytes = new Blob([html]).size;
   const mb    = (bytes / 1024 / 1024).toFixed(2);
   const kb    = (bytes / 1024).toFixed(0);
@@ -707,20 +812,21 @@ async function checkExportSize() {
   let color, msg;
   if (bytes > 3 * 1024 * 1024) {
     color = '#e74c3c';
-    msg   = '⚠️ <strong>' + mb + ' MB</strong> — Too large for GitHub Pages preview.<br>' +
-            'Fix: Use a smaller profile photo (under 200KB). Resize it at <a href="https://squoosh.app" target="_blank" style="color:var(--accent)">squoosh.app</a> before uploading.';
+    msg = '⚠️ <strong>' + mb + ' MB</strong> — Too large for GitHub Pages preview.<br>' +
+          'Fix: Use a smaller profile photo (under 200KB). Resize it at <a href="https://squoosh.app" target="_blank" style="color:var(--accent)">squoosh.app</a> before uploading.';
   } else if (bytes > 1 * 1024 * 1024) {
     color = '#f39c12';
-    msg   = '⚠️ <strong>' + mb + ' MB</strong> — Moderate. Will work on GitHub Pages but may be slow.<br>' +
-            'Tip: Use a smaller profile photo for best speed.';
+    msg = '⚠️ <strong>' + mb + ' MB</strong> — Moderate. Will work on GitHub Pages but may be slow.<br>' +
+          'Tip: Use a smaller profile photo for best speed.';
   } else {
     color = '#2ecc71';
-    msg   = '✅ <strong>' + (bytes > 1024 * 1024 ? mb + ' MB' : kb + ' KB') + '</strong> — GitHub Pages ready! Safe to export and upload.';
+    msg = '✅ <strong>' + (bytes > 1024*1024 ? mb + ' MB' : kb + ' KB') + '</strong> — GitHub Pages ready! Safe to export and upload.';
   }
 
-  label.innerHTML       = msg;
+  label.innerHTML = msg;
   bar.style.borderColor = color;
 }
+
 
 function compressImage(dataUrl, maxW, q) {
   return new Promise(resolve => {
@@ -734,18 +840,18 @@ function compressImage(dataUrl, maxW, q) {
       c.getContext('2d').drawImage(img, 0, 0, w, h);
       resolve(c.toDataURL('image/jpeg', q));
     };
-    img.onerror = () => resolve('');
+    img.onerror = () => resolve(''); // drop broken images
     img.src = dataUrl;
   });
 }
 
 async function compressDataImages(data) {
-  const d = JSON.parse(JSON.stringify(data));
+  const d = JSON.parse(JSON.stringify(data)); // deep clone, don't mutate live DATA
 
   if (d.avatar && d.avatar.startsWith('data:image'))
     d.avatar = await compressImage(d.avatar, 300, 0.65);
 
-  for (let i = 0; i < (d.videos || []).length; i++) {
+  for (let i = 0; i < (d.videos||[]).length; i++) {
     const v = d.videos[i];
     if (v.posterData && v.posterData.startsWith('data:image'))
       v.posterData = await compressImage(v.posterData, 600, 0.60);
@@ -753,22 +859,63 @@ async function compressDataImages(data) {
     delete v.fileName;  delete v.beforeFileName; delete v.mimeType;
   }
 
+  for (let i = 0; i < (d.colorGrading||[]).length; i++) {
+    const s = d.colorGrading[i];
+    if (s.beforeData && s.beforeData.startsWith('data:image'))
+      s.beforeData = await compressImage(s.beforeData, 1200, 0.72);
+    if (s.afterData && s.afterData.startsWith('data:image'))
+      s.afterData  = await compressImage(s.afterData,  1200, 0.72);
+  }
+
   return d;
 }
 
-function buildExportHTML(exportData) {
+async function buildExportHTML(exportData) {
   var src = document.documentElement.outerHTML;
 
-  src = src.replace(/<div id="admin-panel"[^>]*class="[^"]*open[^"]*"[^>]*>/g,
-    function(m) { return m.replace(/\bopen\b/g, '').replace(/class=" "/, 'class=""'); });
-  src = src.replace(/<div id="pwd-prompt"[^>]*class="[^"]*open[^"]*"[^>]*>/g,
-    function(m) { return m.replace(/\bopen\b/g, '').replace(/class=" "/, 'class=""'); });
+  // ── Close admin/pwd panels in export ──
+  src = src.replace(/<div id="admin-panel"([^>]*)>/g, function(m, attrs) {
+    return '<div id="admin-panel"' + attrs.replace(/\bopen\b/g, '').replace(/class="\s*"/g, 'class=""') + '>';
+  });
+  src = src.replace(/<div id="pwd-prompt"([^>]*)>/g, function(m, attrs) {
+    return '<div id="pwd-prompt"' + attrs.replace(/\bopen\b/g, '').replace(/class="\s*"/g, 'class=""') + '>';
+  });
 
-  var block = 'const DATA = ' + JSON.stringify(exportData) + ';';
-  var start = src.indexOf('const DATA = {');
-  var end   = src.indexOf('const ADMIN_PASSWORD');
-  if (start === -1 || end === -1) return src;
-  return src.slice(0, start) + block + '\n\n' + src.slice(end);
+  // ── Fetch all external JS files and inline them ──
+  var scripts = ['protection.js', 'data.js', 'main.js', 'intro.js', 'ui.js'];
+  var inlined = {};
+  for (var i = 0; i < scripts.length; i++) {
+    try {
+      var r = await fetch(scripts[i] + '?v=' + Date.now());
+      inlined[scripts[i]] = r.ok ? await r.text() : '/* ' + scripts[i] + ' not fetched */';
+    } catch(e) {
+      inlined[scripts[i]] = '/* ' + scripts[i] + ' fetch error */';
+    }
+  }
+
+  // ── Inject current DATA into the data.js content ──
+  var dataBlock = 'const DATA = ' + JSON.stringify(exportData) + ';';
+  var dataContent = inlined['data.js'] || '';
+  // Replace the existing DATA declaration in data.js
+  var dataReplaced = dataContent.replace(/const DATA\s*=\s*\{[\s\S]*?\};?\s*(?=\n|$)/, dataBlock);
+  if (dataReplaced === dataContent) {
+    // fallback: prepend the new DATA block
+    dataReplaced = dataBlock + '\n\n' + dataContent.replace(/const DATA\s*=[\s\S]*?(?=\nconst |\nvar |\nfunction |$)/, '');
+  }
+  inlined['data.js'] = dataReplaced;
+
+  // ── Replace all <script src="..."> tags with inline <script> blocks ──
+  src = src.replace(/<script\s+src="(protection\.js|data\.js|main\.js|intro\.js|ui\.js)"[^>]*><\/script>/g,
+    function(match, filename) {
+      var content = inlined[filename] || '';
+      return '<script>\n' + content + '\n</script>';
+    }
+  );
+
+  // ── Remove cursor elements that were injected into DOM (they get re-created by script) ──
+  // Keep them since the script recreates cursor logic
+
+  return src;
 }
 
 function showSizeBar(bytes, color, msg) {
@@ -778,8 +925,8 @@ function showSizeBar(bytes, color, msg) {
   const kb = (bytes / 1024).toFixed(0);
   const mb = (bytes / 1024 / 1024).toFixed(2);
   label.innerHTML = msg + ' &nbsp;|&nbsp; Size: <strong style="color:' + color + '">' +
-    (bytes > 1024 * 1024 ? mb + ' MB' : kb + ' KB') + '</strong>';
-  bar.style.display     = 'block';
+    (bytes > 1024*1024 ? mb + ' MB' : kb + ' KB') + '</strong>';
+  bar.style.display = 'block';
   bar.style.borderColor = color;
 }
 
@@ -795,24 +942,25 @@ async function exportHTML() {
 
   try {
     const compressed = await compressDataImages(DATA);
-    const html       = buildExportHTML(compressed);
+    const html       = await buildExportHTML(compressed);
     const bytes      = new Blob([html]).size;
 
     if (bytes > 3 * 1024 * 1024) {
-      showSizeBar(bytes, '#e74c3c', '⚠️ Still large — your profile photo may be very high-res. Try a smaller photo.');
+      showSizeBar(bytes, '#e74c3c',
+        '⚠️ Still large — your profile photo may be very high-res. Try a smaller photo.');
     } else if (bytes > 1 * 1024 * 1024) {
       showSizeBar(bytes, '#f39c12', '⚠️ Moderate size — should work on GitHub Pages');
     } else {
       showSizeBar(bytes, '#2ecc71', '✅ Great — well within GitHub Pages limits');
     }
 
-    const blob = new Blob([html], { type: 'text/html' });
-    const a    = document.createElement('a');
-    a.href     = URL.createObjectURL(blob);
-    a.download = (DATA.name.replace(/\s+/g, '_') || 'portfolio') + '.html';
+    const blob = new Blob([html], {type:'text/html'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (DATA.name.replace(/\s+/g,'_') || 'portfolio') + '.html';
     a.click();
     btn.textContent = '✅ Exported!';
-  } catch (err) {
+  } catch(err) {
     console.error(err);
     btn.textContent = '❌ Failed';
   }
@@ -821,18 +969,13 @@ async function exportHTML() {
   setTimeout(() => btn.textContent = '📤 Export HTML', 3000);
 }
 
-
-/* ================================================================
-   CONTACT FORM — Terms & EmailJS
-================================================================ */
-
 function toggleSendBtn() {
   var cb  = document.getElementById('tnc-checkbox');
   var btn = document.getElementById('send-btn');
   var lbl = document.getElementById('send-btn-label');
   if (!btn) return;
   btn.disabled = !cb.checked;
-  if (lbl) lbl.textContent = 'Send Message';
+  if (lbl) lbl.textContent = cb.checked ? 'Send Message' : 'Send Message';
 }
 function openTnC() {
   var modal = document.getElementById('tnc-modal');
@@ -881,28 +1024,24 @@ async function sendMessage() {
     emailjs.init({ publicKey: DATA.emailjsPublicKey });
     await emailjs.send(DATA.emailjsServiceId, DATA.emailjsTemplateId, {
       from_name: name, from_email: email,
-      subject:   subject || 'Portfolio Inquiry', message: message
+      subject: subject || 'Portfolio Inquiry', message: message
     });
     sucEl.style.display = 'block';
-    ['cf-name', 'cf-email', 'cf-subject', 'cf-message'].forEach(id => document.getElementById(id).value = '');
+    ['cf-name','cf-email','cf-subject','cf-message'].forEach(id => document.getElementById(id).value = '');
     if (tnc) { tnc.checked = false; toggleSendBtn(); }
-  } catch (err) {
+  } catch(err) {
     showErr('Failed to send: ' + (err.text || err.message || 'Please try again.'));
     btn.disabled = false;
   }
   if (lbl) lbl.textContent = 'Send Message';
 }
 
-
-/* ================================================================
-   LOCAL STORAGE
-================================================================ */
-
 var LS_KEY = 'portfolio_data_v1';
 
 function saveToLocalStorage() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(DATA)); }
-  catch (e) { console.warn('localStorage save failed:', e); }
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(DATA));
+  } catch(e) { console.warn('localStorage save failed:', e); }
 }
 
 function loadFromLocalStorage() {
@@ -912,25 +1051,21 @@ function loadFromLocalStorage() {
     var saved = JSON.parse(raw);
     Object.keys(saved).forEach(function(k) { DATA[k] = saved[k]; });
     return true;
-  } catch (e) {
+  } catch(e) {
     console.warn('localStorage load failed:', e);
     return false;
   }
 }
 
+var GH_KEY = 'portfolio_gh_settings';
 
-/* ================================================================
-   GITHUB SYNC — settings / publish / auto-sync / auto-fetch
-================================================================ */
-
-var GH_KEY      = 'portfolio_gh_settings';
 var GH_DEFAULTS = { user: 'hrs-editz', repo: 'Portfolio', file: 'index.html' };
 
 function saveGitHubSettings() {
   var s = {
-    user:  (document.getElementById('gh-user').value.trim())  || GH_DEFAULTS.user,
-    repo:  (document.getElementById('gh-repo').value.trim())  || GH_DEFAULTS.repo,
-    file:  (document.getElementById('gh-file').value.trim())  || GH_DEFAULTS.file,
+    user: (document.getElementById('gh-user').value.trim()) || GH_DEFAULTS.user,
+    repo: (document.getElementById('gh-repo').value.trim()) || GH_DEFAULTS.repo,
+    file: (document.getElementById('gh-file').value.trim()) || GH_DEFAULTS.file,
     token: document.getElementById('gh-token').value.trim()
   };
   localStorage.setItem(GH_KEY, JSON.stringify(s));
@@ -940,11 +1075,11 @@ function saveGitHubSettings() {
 function loadGitHubSettings() {
   try {
     var s = JSON.parse(localStorage.getItem(GH_KEY) || '{}');
-    document.getElementById('gh-user').value = s.user  || GH_DEFAULTS.user;
-    document.getElementById('gh-repo').value = s.repo  || GH_DEFAULTS.repo;
-    document.getElementById('gh-file').value = s.file  || GH_DEFAULTS.file;
+    document.getElementById('gh-user').value = s.user || GH_DEFAULTS.user;
+    document.getElementById('gh-repo').value = s.repo || GH_DEFAULTS.repo;
+    document.getElementById('gh-file').value = s.file || GH_DEFAULTS.file;
     if (s.token) document.getElementById('gh-token').value = s.token;
-  } catch (e) {}
+  } catch(e) {}
 }
 
 function getGitHubSettings() {
@@ -956,16 +1091,19 @@ function getGitHubSettings() {
       file:  s.file  || GH_DEFAULTS.file,
       token: s.token || ''
     };
-  } catch (e) { return GH_DEFAULTS; }
+  } catch(e) { return GH_DEFAULTS; }
 }
 
 function showGhStatus(msg, color) {
   var el = document.getElementById('gh-status');
-  el.style.display    = 'block';
-  el.style.background = color === '#e74c3c' ? 'rgba(192,57,43,0.1)' : 'rgba(46,204,113,0.08)';
-  el.style.border     = '1px solid ' + color + '44';
-  el.style.color      = color;
-  el.innerHTML        = msg;
+  if (!el) return;
+  var bg = color === '#e74c3c' ? 'rgba(192,57,43,0.1)'
+         : color === '#2ecc71' ? 'rgba(46,204,113,0.08)'
+         : color === '#3498db' ? 'rgba(52,152,219,0.08)'
+         : 'rgba(243,156,18,0.08)';
+  el.style.cssText = 'display:block;background:' + bg + ';border:1px solid ' + color + '66;color:' + color + ';padding:0.8rem 1rem;border-radius:3px;font-family:var(--font-mono);font-size:0.73rem;line-height:1.7;margin-top:0.9rem;';
+  el.innerHTML = msg;
+  setTimeout(function(){ el.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 120);
 }
 
 async function testGitHubConnection() {
@@ -984,99 +1122,185 @@ async function testGitHubConnection() {
     } else {
       showGhStatus('❌ Error: ' + (d.message || 'Connection failed. Check your token and repo name.'), '#e74c3c');
     }
-  } catch (e) { showGhStatus('❌ Network error: ' + e.message, '#e74c3c'); }
+  } catch(e) { showGhStatus('❌ Network error: ' + e.message, '#e74c3c'); }
 }
 
 async function publishToGitHub() {
+  // ── 1. Make sure admin panel is open and status is visible ──
   var adminEl = document.getElementById('admin-panel');
   var pwdEl   = document.getElementById('pwd-prompt');
-
   if (adminEl) adminEl.classList.add('open');
   if (pwdEl)   pwdEl.classList.remove('open');
 
-  if (typeof switchTab === 'function') switchTab('publish');
+  // Switch to publish tab without relying on event object
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  var pubTab = document.querySelector('.admin-tab[onclick*="publish"]');
+  if (pubTab) pubTab.classList.add('active');
+  var pubSec = document.getElementById('tab-publish');
+  if (pubSec) pubSec.classList.add('active');
 
-  applyChanges();
+  // Force status bar visible immediately so user sees feedback
+  var statusEl = document.getElementById('gh-status');
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.style.background = 'rgba(243,156,18,0.1)';
+    statusEl.style.border = '1px solid #f39c1244';
+    statusEl.style.color = '#f39c12';
+    statusEl.innerHTML = '⏳ Starting publish — please wait…';
+    setTimeout(function(){ statusEl.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 150);
+  }
 
-  var s = getGitHubSettings();
-  if (!s.token) {
-    showGhStatus('⚠️ Enter your GitHub Personal Access Token below before publishing.', '#f39c12');
+  // ── 2. Read settings directly from the input fields ──
+  var ghUser  = (document.getElementById('gh-user')  ? document.getElementById('gh-user').value.trim()  : '') || 'hrs-editz';
+  var ghRepo  = (document.getElementById('gh-repo')  ? document.getElementById('gh-repo').value.trim()  : '') || 'Portfolio';
+  var ghFile  = (document.getElementById('gh-file')  ? document.getElementById('gh-file').value.trim()  : '') || 'index.html';
+  var ghToken = (document.getElementById('gh-token') ? document.getElementById('gh-token').value.trim() : '');
+
+  // Also try localStorage as fallback
+  if (!ghToken) {
+    try {
+      var stored = JSON.parse(localStorage.getItem('portfolio_gh_settings') || '{}');
+      if (stored.token) ghToken = stored.token;
+    } catch(e) {}
+  }
+
+  if (!ghToken) {
+    showGhStatus('⚠️ No GitHub token found. Enter your Personal Access Token in the field above and click 💾 Save Settings first.', '#f39c12');
     return;
   }
 
-  var publishBtns = document.querySelectorAll('[onclick="publishToGitHub()"]');
-  publishBtns.forEach(function(b) { b.disabled = true; b.style.opacity = '0.6'; b.style.cursor = 'not-allowed'; });
+  // ── 3. Disable publish buttons ──
+  var publishBtns = document.querySelectorAll('button[onclick="publishToGitHub()"], button[onclick*="publishToGitHub"]');
+  publishBtns.forEach(function(b) { b.disabled = true; b.style.opacity = '0.5'; });
 
-  var filePath = s.file || 'index.html';
-  var apiBase  = 'https://api.github.com/repos/' + s.user + '/' + s.repo + '/contents/' + filePath;
-  var headers  = {
-    'Authorization': 'token ' + s.token,
-    'Accept':        'application/vnd.github.v3+json',
-    'Content-Type':  'application/json'
+  var apiBase = 'https://api.github.com/repos/' + ghUser + '/' + ghRepo + '/contents/' + ghFile;
+  var headers = {
+    'Authorization': 'token ' + ghToken,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json'
   };
 
-  showGhStatus('⏳ Compressing and preparing your portfolio…', '#f39c12');
-
   try {
-    var compressed = await compressDataImages(DATA);
+    // ── 4. Save current form values into DATA ──
+    showGhStatus('⏳ Saving changes…', '#f39c12');
+    try { applyChanges(); } catch(e) { console.warn('applyChanges error:', e); }
 
-    var adminOpenBefore = adminEl && adminEl.classList.contains('open');
-    if (adminEl) adminEl.classList.remove('open');
-    if (pwdEl)   pwdEl.classList.remove('open');
+    // ── 5. Compress images ──
+    showGhStatus('⏳ Compressing images…', '#f39c12');
+    var compressed;
+    try {
+      compressed = await compressDataImages(DATA);
+    } catch(e) {
+      compressed = JSON.parse(JSON.stringify(DATA)); // fallback: uncompressed clone
+    }
 
-    var html = buildExportHTML(compressed);
-
-    if (adminEl && adminOpenBefore) adminEl.classList.add('open');
-
-    var encoded = btoa(unescape(encodeURIComponent(html)));
-
-    showGhStatus('⏳ Connecting to GitHub…', '#f39c12');
-    var getResp = await fetch(apiBase, { headers: headers });
-    var sha = null;
-    if (getResp.ok) {
-      var fileData = await getResp.json();
-      sha = fileData.sha;
-    } else if (getResp.status !== 404) {
-      var errData = await getResp.json();
-      showGhStatus('❌ Could not read file: ' + (errData.message || getResp.status), '#e74c3c');
-      publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; b.style.cursor = ''; });
+    // ── 6. Build the HTML export (fetches & inlines all JS files) ──
+    showGhStatus('⏳ Building HTML — fetching scripts to inline…', '#f39c12');
+    var html;
+    try {
+      html = await buildExportHTML(compressed);
+    } catch(e) {
+      showGhStatus('❌ Failed to build HTML: ' + e.message, '#e74c3c');
+      publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
       return;
     }
 
+    if (!html || html.length < 500) {
+      showGhStatus('❌ HTML export came out empty or too small. Please try again.', '#e74c3c');
+      publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+      return;
+    }
+
+    // ── 7. Base64 encode safely ──
+    showGhStatus('⏳ Encoding for GitHub…', '#f39c12');
+    var encoded;
+    try {
+      // Safe UTF-8 → base64 that handles all characters
+      var bytes = new TextEncoder().encode(html);
+      var binary = '';
+      for (var i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      encoded = btoa(binary);
+    } catch(e) {
+      try { encoded = btoa(unescape(encodeURIComponent(html))); }
+      catch(e2) {
+        showGhStatus('❌ Encoding failed: ' + e2.message, '#e74c3c');
+        publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+        return;
+      }
+    }
+
+    // ── 8. Get current file SHA (needed for update) ──
+    showGhStatus('⏳ Connecting to GitHub…', '#f39c12');
+    var sha = null;
+    try {
+      var getResp = await fetch(apiBase, { headers: headers });
+      if (getResp.ok) {
+        var fileData = await getResp.json();
+        sha = fileData.sha;
+      } else if (getResp.status === 401) {
+        showGhStatus('❌ Authentication failed — your GitHub token is invalid or expired. <a href="https://github.com/settings/tokens/new?scopes=repo&description=Portfolio+Publisher" target="_blank" style="color:var(--accent);">Create a new token ↗</a>', '#e74c3c');
+        publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+        return;
+      } else if (getResp.status === 404) {
+        // File doesn't exist yet — will create it fresh (sha stays null)
+        sha = null;
+      } else {
+        var errTxt = await getResp.text();
+        showGhStatus('❌ GitHub read error (' + getResp.status + '): ' + errTxt, '#e74c3c');
+        publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+        return;
+      }
+    } catch(e) {
+      showGhStatus('❌ Network error reaching GitHub: ' + e.message, '#e74c3c');
+      publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+      return;
+    }
+
+    // ── 9. Push to GitHub ──
     showGhStatus('⏳ Uploading to GitHub — please wait…', '#f39c12');
     var body = { message: '🎬 Portfolio update via admin panel', content: encoded };
     if (sha) body.sha = sha;
 
     var putResp = await fetch(apiBase, {
-      method:  'PUT',
+      method: 'PUT',
       headers: headers,
-      body:    JSON.stringify(body)
+      body: JSON.stringify(body)
     });
-    var putData = await putResp.json();
+
+    var putData;
+    try { putData = await putResp.json(); } catch(e) { putData = {}; }
 
     if (putResp.ok) {
-      var liveUrl = 'https://' + s.user + '.github.io/' + s.repo + '/';
+      var liveUrl = 'https://' + ghUser + '.github.io/' + ghRepo + '/';
       showGhStatus(
         '✅ <strong>Published successfully!</strong> Your site is updating now.<br>' +
         '🌐 Live in ~60 seconds: <a href="' + liveUrl + '" target="_blank" style="color:var(--accent);">' + liveUrl + ' ↗</a><br>' +
-        '<span style="color:var(--muted);font-size:0.68rem;">Videos synced via Google Drive links — no re-upload needed.</span>',
+        '<span style="color:var(--muted);font-size:0.68rem;">Changes committed to GitHub — GitHub Pages will rebuild automatically.</span>',
         '#2ecc71'
       );
-      var statusEl = document.getElementById('gh-status');
-      if (statusEl) setTimeout(function() { statusEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 100);
+      // Save settings to localStorage after successful publish
+      try {
+        localStorage.setItem('portfolio_gh_settings', JSON.stringify({ user: ghUser, repo: ghRepo, file: ghFile, token: ghToken }));
+      } catch(e) {}
     } else {
-      showGhStatus('❌ Publish failed: ' + (putData.message || JSON.stringify(putData)), '#e74c3c');
+      var errMsg = putData.message || JSON.stringify(putData);
+      if (putResp.status === 422) errMsg = 'SHA mismatch — file was changed externally. Please try again.';
+      if (putResp.status === 401) errMsg = 'Token invalid or missing "repo" permission. <a href="https://github.com/settings/tokens/new?scopes=repo&description=Portfolio+Publisher" target="_blank" style="color:var(--accent);">Create new token ↗</a>';
+      showGhStatus('❌ Publish failed (' + putResp.status + '): ' + errMsg, '#e74c3c');
     }
-  } catch (e) {
-    showGhStatus('❌ Error: ' + e.message, '#e74c3c');
+
+  } catch(e) {
+    showGhStatus('❌ Unexpected error: ' + e.message + '<br><small>Open browser console (F12) for details.</small>', '#e74c3c');
+    console.error('publishToGitHub error:', e);
   }
 
-  publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; b.style.cursor = ''; });
+  publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
 }
 
 async function autoSyncToGitHub() {
   var s = getGitHubSettings();
-  if (!s.token || !s.user || !s.repo) return;
+  if (!s.token || !s.user || !s.repo) return; // not configured, skip silently
 
   var htmlFile = s.file || 'index.html';
   var folder   = htmlFile.includes('/') ? htmlFile.substring(0, htmlFile.lastIndexOf('/') + 1) : '';
@@ -1084,8 +1308,8 @@ async function autoSyncToGitHub() {
   var apiBase  = 'https://api.github.com/repos/' + s.user + '/' + s.repo + '/contents/' + dataFile;
   var headers  = {
     'Authorization': 'token ' + s.token,
-    'Accept':        'application/vnd.github.v3+json',
-    'Content-Type':  'application/json'
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json'
   };
 
   var compressed = await compressDataImages(DATA);
@@ -1096,7 +1320,7 @@ async function autoSyncToGitHub() {
   try {
     var getResp = await fetch(apiBase, { headers: headers });
     if (getResp.ok) { var fd = await getResp.json(); sha = fd.sha; }
-  } catch (e) {}
+  } catch(e) {}
 
   var body = { message: '⚡ Auto-sync portfolio data', content: encoded };
   if (sha) body.sha = sha;
@@ -1107,7 +1331,7 @@ async function autoSyncToGitHub() {
 
 async function autoFetchFromGitHub() {
   var s = getGitHubSettings();
-  if (!s.user || !s.repo) return;
+  if (!s.user || !s.repo) return; // not configured
 
   var htmlFile = s.file || 'index.html';
   var folder   = htmlFile.includes('/') ? htmlFile.substring(0, htmlFile.lastIndexOf('/') + 1) : '';
@@ -1121,7 +1345,8 @@ async function autoFetchFromGitHub() {
     var remote = await resp.json();
     Object.keys(remote).forEach(function(k) { DATA[k] = remote[k]; });
     render();
-  } catch (e) {}
+  } catch(e) {
+  }
 }
 
 (function() {
@@ -1132,13 +1357,7 @@ async function autoFetchFromGitHub() {
   };
   autoFetchFromGitHub();
 })();
-
-
-/* ================================================================
-   SCROLL — IntersectionObserver for fade-up animations
-================================================================ */
-
 const obs = new IntersectionObserver(entries => {
-  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-}, { threshold: 0.08 });
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, {threshold: 0.08});
 document.querySelectorAll('.fade-up').forEach(el => obs.observe(el));
