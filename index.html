@@ -1305,10 +1305,10 @@ body.cursor-hidden #cursor-ring { opacity: 0; }
         <span style="color:var(--muted);">Your token is stored only in this browser (localStorage) and never exported to the HTML file.</span>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>GitHub Username</label><input type="text" id="gh-user" placeholder="hrs-editz" autocomplete="off" style="opacity:0.6;" readonly></div>
-        <div class="form-group"><label>Repository Name</label><input type="text" id="gh-repo" placeholder="Portfolio" autocomplete="off" style="opacity:0.6;" readonly></div>
+        <div class="form-group"><label>GitHub Username</label><input type="text" id="gh-user" value="hrs-editz" autocomplete="off"></div>
+        <div class="form-group"><label>Repository Name</label><input type="text" id="gh-repo" value="Portfolio" autocomplete="off"></div>
       </div>
-      <div class="form-group"><label>File Path in Repo</label><input type="text" id="gh-file" placeholder="index.html" autocomplete="off" style="opacity:0.6;" readonly></div>
+      <div class="form-group"><label>File Path in Repo</label><input type="text" id="gh-file" value="index.html" autocomplete="off"></div>
       <div class="form-group">
         <label>Personal Access Token (PAT) <span style="color:var(--muted);font-size:0.65rem;">— <a href="https://github.com/settings/tokens/new?scopes=repo&amp;description=Portfolio+Publisher" target="_blank" style="color:var(--accent);">Create token ↗</a> (needs repo scope)</span></label>
         <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
