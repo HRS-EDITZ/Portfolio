@@ -89,7 +89,7 @@ function render() {
   const videosHTML = DATA.videos.length === 0
     ? '<p style="color:var(--muted);font-family:var(--font-mono);font-size:0.85rem;padding:2rem 0;">No videos yet. Open the admin panel → Videos tab to add your work.</p>'
     : DATA.videos.map((v,i) => {
-        const hasVideo = !!(extractDriveId(v.afterDriveUrl || '') || extractDriveId(v.beforeDriveUrl || ''));
+        const hasVideo = !!(extractDriveId(v.driveUrl || '') || extractDriveId(v.afterDriveUrl || '') || extractDriveId(v.beforeDriveUrl || ''));
         const isShort = (v.type === 'short');
         const hasPoster = v.posterData && v.posterData.length > 100;
         const thumbHTML = hasPoster
@@ -126,13 +126,13 @@ function render() {
             '<div class="cg-info"><div class="cg-shot-cat">' + (s.cat||'Color Grading') + '</div>' +
             '<div class="cg-shot-title">' + (s.title||'Untitled Shot') + '</div></div></div>';
         }
-        var orient = (s.orientation === 'portrait') ? 'portrait' : 'landscape';
-        var aspectStyle = (orient === 'portrait') ? 'aspect-ratio:9/16;' : 'aspect-ratio:16/9;';
-        return '<div class="cg-card cg-card-' + orient + '" onclick="openCGLightbox(' + i + ')">' +
-          '<div class="cg-slider-wrap" id="cg-card-wrap-' + i + '" style="' + aspectStyle + '">' +
+        return '<div class="cg-card" onclick="openCGLightbox(' + i + ')">' +
+          '<div class="cg-slider-wrap" id="cg-card-wrap-' + i + '">' +
           '<div class="cg-img-before" style="background-image:url(\'' + (hasBefore ? s.beforeData : s.afterData) + '\')"></div>' +
           '<div class="cg-img-after"  id="cg-after-' + i + '" style="background-image:url(\'' + (hasAfter  ? s.afterData  : s.beforeData) + '\')"></div>' +
-          '<div class="cg-drag-handle" id="cg-div-' + i + '"></div>' +
+          '<input type="range" class="cg-range" min="0" max="100" value="50" ' +
+            'oninput="moveCGSlider(this,' + i + ')" onclick="event.stopPropagation()">' +
+          '<div class="cg-divider" id="cg-div-' + i + '"></div>' +
           '<div class="cg-label cg-label-before">BEFORE</div>' +
           '<div class="cg-label cg-label-after">AFTER</div>' +
           '</div>' +
@@ -144,34 +144,6 @@ function render() {
           '</div></div>';
       }).join('');
   setHTML('cg-container', cgHTML);
-  // Wire up pointer-event drag on each card slider (works on touch + mouse)
-  cgShots.forEach(function(s, i) {
-    var wrap   = document.getElementById('cg-card-wrap-' + i);
-    var after  = document.getElementById('cg-after-' + i);
-    var handle = document.getElementById('cg-div-' + i);
-    if (!wrap) return;
-    var dragging = false;
-    function applyPct(clientX) {
-      var rect = wrap.getBoundingClientRect();
-      var pct  = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
-      if (after)  after.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
-      if (handle) handle.style.left    = pct + '%';
-    }
-    wrap.addEventListener('pointerdown', function(e) {
-      e.preventDefault(); e.stopPropagation();
-      dragging = true;
-      wrap.setPointerCapture(e.pointerId);
-      applyPct(e.clientX);
-    });
-    wrap.addEventListener('pointermove', function(e) {
-      if (!dragging) return;
-      e.preventDefault();
-      applyPct(e.clientX);
-    });
-    wrap.addEventListener('pointerup',     function(e) { dragging = false; wrap.releasePointerCapture(e.pointerId); });
-    wrap.addEventListener('pointercancel', function()  { dragging = false; });
-    wrap.addEventListener('click',         function(e) { if (dragging) e.stopPropagation(); });
-  });
   setHTML('hero-tags', DATA.tags.map((t,i)=>`<span class="tag ${tagColors[i%4]}">${t}</span>`).join(''));
 
   setHTML('about-pills', DATA.pills.map(p=>`<span class="pill">${p}</span>`).join(''));
@@ -269,35 +241,20 @@ var _lbIdx = 0;
 
 function openLightbox(i) {
   _lbIdx = i;
-  var v = DATA.videos[i];
+  var v       = DATA.videos[i];
   var isShort = (v.type === 'short');
-  var frame    = document.getElementById('video-lightbox-frame');
-  var lbInner  = document.getElementById('video-lightbox-inner');
-  var tabBar   = document.getElementById('lb-tab-bar');
-  var beforeBtn = document.getElementById('lb-before-btn');
-  var afterBtn  = document.getElementById('lb-after-btn');
-  var hasBefore = !!extractDriveId(v.beforeDriveUrl);
-  var hasAfter  = !!extractDriveId(v.afterDriveUrl);
+  var frame   = document.getElementById('video-lightbox-frame');
+  var lbInner = document.getElementById('video-lightbox-inner');
 
-  if (isShort) {
-    frame.classList.add('type-short');
-    lbInner.classList.add('type-short');
-  } else {
-    frame.classList.remove('type-short');
-    lbInner.classList.remove('type-short');
-  }
+  if (isShort) { frame.classList.add('type-short');    lbInner.classList.add('type-short'); }
+  else         { frame.classList.remove('type-short'); lbInner.classList.remove('type-short'); }
 
-  tabBar.classList.remove('visible');
+  // Support legacy beforeDriveUrl/afterDriveUrl data as fallback
+  var url = v.driveUrl || v.afterDriveUrl || v.beforeDriveUrl || '';
 
-  if (!hasBefore && !hasAfter) {
+  if (!extractDriveId(url)) {
     frame.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:1rem;color:var(--muted);font-family:var(--font-mono);font-size:0.85rem;text-align:center;padding:2rem;">📭<br>No video linked yet.<br><span style="font-size:0.72rem;opacity:0.6;">Open admin panel → Videos tab and paste your Google Drive share link.</span></div>';
-  } else if (hasBefore && hasAfter) {
-    tabBar.classList.add('visible');
-    beforeBtn.className = 'lb-tab-btn active';
-    afterBtn.className  = 'lb-tab-btn inactive';
-    frame.innerHTML = buildDriveEmbed(v.beforeDriveUrl, isShort);
   } else {
-    var url = hasAfter ? v.afterDriveUrl : v.beforeDriveUrl;
     frame.innerHTML = buildDriveEmbed(url, isShort);
   }
 
@@ -306,28 +263,9 @@ function openLightbox(i) {
   document.body.style.overflow = 'hidden';
 }
 
-function switchLightboxVideo(type, i) {
-  var v = DATA.videos[i];
-  var isShort = (v.type === 'short');
-  var beforeBtn = document.getElementById('lb-before-btn');
-  var afterBtn  = document.getElementById('lb-after-btn');
-  var frame     = document.getElementById('video-lightbox-frame');
-  var url = (type === 'before') ? v.beforeDriveUrl : v.afterDriveUrl;
-  if (!extractDriveId(url)) return;
-  frame.innerHTML = buildDriveEmbed(url, isShort);
-  if (type === 'before') {
-    beforeBtn.className = 'lb-tab-btn active';
-    afterBtn.className  = 'lb-tab-btn inactive';
-  } else {
-    afterBtn.className  = 'lb-tab-btn active';
-    beforeBtn.className = 'lb-tab-btn inactive';
-  }
-}
-
 function closeLightbox() {
   document.getElementById('video-lightbox').classList.remove('open');
   document.getElementById('video-lightbox-frame').innerHTML = '';
-  document.getElementById('lb-tab-bar').classList.remove('visible');
   document.body.style.overflow = '';
 }
 
@@ -357,19 +295,8 @@ function openCGLightbox(i) {
   document.getElementById('cg-lb-after').style.backgroundImage  = 'url(\'' + (hasAfter  ? s.afterData  : '') + '\')';
   document.getElementById('cg-lb-after').style.clipPath = 'inset(0 50% 0 0)';
   document.getElementById('cg-lb-divider').style.left = '50%';
+  document.getElementById('cg-lb-range').value = 50;
   document.getElementById('cg-lightbox-title').textContent = s.title || '';
-
-  // Apply orientation saved in admin
-  var inner = document.getElementById('cg-lightbox-inner');
-  var wrap  = document.getElementById('cg-lb-slider-wrap');
-  if (s.orientation === 'portrait') {
-    if (inner) inner.classList.add('portrait-mode');
-    if (wrap)  wrap.classList.add('portrait-mode');
-  } else {
-    if (inner) inner.classList.remove('portrait-mode');
-    if (wrap)  wrap.classList.remove('portrait-mode');
-  }
-
   document.getElementById('cg-lightbox').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -384,30 +311,13 @@ document.getElementById('cg-lightbox').addEventListener('click', function(e) {
 });
 
 (function initCGLbSlider() {
-  var wrap    = document.getElementById('cg-lb-slider-wrap');
-  var after   = document.getElementById('cg-lb-after');
-  var divider = document.getElementById('cg-lb-divider');
-  if (!wrap) return;
-  var dragging = false;
-  function applyPct(clientX) {
-    var rect = wrap.getBoundingClientRect();
-    var pct  = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
-    if (after)   after.style.clipPath  = 'inset(0 ' + (100 - pct) + '% 0 0)';
-    if (divider) divider.style.left    = pct + '%';
-  }
-  wrap.addEventListener('pointerdown', function(e) {
-    e.preventDefault();
-    dragging = true;
-    wrap.setPointerCapture(e.pointerId);
-    applyPct(e.clientX);
+  var range = document.getElementById('cg-lb-range');
+  if (!range) return;
+  range.addEventListener('input', function() {
+    var pct = this.value;
+    document.getElementById('cg-lb-after').style.clipPath    = 'inset(0 ' + (100-pct) + '% 0 0)';
+    document.getElementById('cg-lb-divider').style.left = pct + '%';
   });
-  wrap.addEventListener('pointermove', function(e) {
-    if (!dragging) return;
-    e.preventDefault();
-    applyPct(e.clientX);
-  });
-  wrap.addEventListener('pointerup',     function(e) { dragging = false; wrap.releasePointerCapture(e.pointerId); });
-  wrap.addEventListener('pointercancel', function()  { dragging = false; });
 })();
 function openDrawer() {
   document.getElementById('nav-drawer').classList.add('open');
@@ -548,15 +458,13 @@ function renderVideoEditor() {
   if (!c) return;
   c.innerHTML = '';
   DATA.videos.forEach((v, i) => {
-    const hasBefore = !!extractDriveId(v.beforeDriveUrl || '');
-    const hasAfter  = !!extractDriveId(v.afterDriveUrl  || '');
+    // Support legacy data: use driveUrl, fall back to afterDriveUrl or beforeDriveUrl
+    const currentUrl = v.driveUrl || v.afterDriveUrl || v.beforeDriveUrl || '';
+    const hasUrl  = !!extractDriveId(currentUrl);
     const hasPoster = v.posterData && v.posterData.length > 100;
 
-    const beforeIdHtml = hasBefore
-      ? '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID detected: ' + extractDriveId(v.beforeDriveUrl) + '</div>'
-      : '';
-    const afterIdHtml = hasAfter
-      ? '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID detected: ' + extractDriveId(v.afterDriveUrl) + '</div>'
+    const urlIdHtml = hasUrl
+      ? '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID detected: ' + extractDriveId(currentUrl) + '</div>'
       : '';
 
     c.innerHTML +=
@@ -567,20 +475,14 @@ function renderVideoEditor() {
       '</div>' +
 
       '<div class="form-group">' +
-      '<label>🎞️ Before Edit — Google Drive Share Link</label>' +
-      '<input type="text" id="vid-before-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + (v.beforeDriveUrl || '') + '" oninput="previewDriveLink(&apos;before&apos;,' + i + ')">' +
-      '<div id="vid-before-preview-' + i + '">' + beforeIdHtml + '</div>' +
-      '</div>' +
-
-      '<div class="form-group">' +
-      '<label>✨ After Edit — Google Drive Share Link</label>' +
-      '<input type="text" id="vid-after-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + (v.afterDriveUrl || '') + '" oninput="previewDriveLink(&apos;after&apos;,' + i + ')">' +
-      '<div id="vid-after-preview-' + i + '">' + afterIdHtml + '</div>' +
+      '<label>🎬 Google Drive Share Link</label>' +
+      '<input type="text" id="vid-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + currentUrl + '" oninput="previewDriveLink(' + i + ')">' +
+      '<div id="vid-url-preview-' + i + '">' + urlIdHtml + '</div>' +
       '</div>' +
 
       '<div class="form-group">' +
       '<label>🖼️ Thumbnail Image (optional — shown on video card)</label>' +
-      '<div class="vid-upload-area" id="vid-poster-area-' + i + '" onclick="document.getElementById(&apos;vid-poster-&apos;+' + i + '+&apos;&apos;).click()">' +
+      '<div class="vid-upload-area" id="vid-poster-area-' + i + '" onclick="document.getElementById(\'vid-poster-' + i + '\').click()">' +
       (hasPoster
         ? '<span style="color:var(--accent)">✅ Thumbnail uploaded</span>'
         : '<span>🖼️ Click to upload thumbnail (JPG/PNG)</span>') +
@@ -605,12 +507,10 @@ function renderVideoEditor() {
   });
 }
 
-function previewDriveLink(type, i) {
-  var inputId = 'vid-' + type + '-url-' + i;
-  var previewId = 'vid-' + type + '-preview-' + i;
-  var url = document.getElementById(inputId).value.trim();
+function previewDriveLink(i) {
+  var url       = document.getElementById('vid-url-' + i).value.trim();
+  var previewEl = document.getElementById('vid-url-preview-' + i);
   var id = extractDriveId(url);
-  var previewEl = document.getElementById(previewId);
   if (id) {
     previewEl.innerHTML = '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID detected: ' + id + '</div>';
   } else if (url.length > 0) {
@@ -635,7 +535,7 @@ function handlePosterFile(event, i) {
 function removeVideo(i) { DATA.videos.splice(i, 1); renderVideoEditor(); }
 
 function addVideo() {
-  DATA.videos.push({title:'My Video',cat:'Category',desc:'Describe this video.',tags:['CapCut'],type:'video',beforeDriveUrl:'',afterDriveUrl:'',posterData:''});
+  DATA.videos.push({title:'My Video',cat:'Category',desc:'Describe this video.',tags:['CapCut'],type:'video',driveUrl:'',posterData:''});
   renderVideoEditor();
   setTimeout(() => {
     const cards = document.querySelectorAll('#videos-editor .admin-card');
@@ -746,13 +646,6 @@ function renderCGEditor() {
       '<div class="form-group"><label>Category</label><input type="text" id="cg-cat-' + i + '" value="' + (s.cat||'Color Grading') + '"></div>' +
       '<div class="form-group"><label>Title</label><input type="text" id="cg-title-' + i + '" value="' + (s.title||'') + '"></div>' +
       '</div>' +
-      '<div class="form-row">' +
-      '<div class="form-group"><label>📐 Image Layout</label>' +
-      '<select id="cg-orient-' + i + '" style="width:100%;padding:0.55rem 0.7rem;background:var(--dark3);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:0.78rem;border-radius:2px;">' +
-      '<option value="landscape"' + (s.orientation !== 'portrait' ? ' selected' : '') + '>🖼 Landscape (16:9) — horizontal shots</option>' +
-      '<option value="portrait"'  + (s.orientation === 'portrait' ? ' selected' : '') + '>📱 Portrait (9:16) — vertical / reel shots</option>' +
-      '</select></div>' +
-      '</div>' +
       '<div class="form-group"><label>Description</label><textarea id="cg-desc-' + i + '" rows="2">' + (s.desc||'') + '</textarea></div>' +
       '<div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="cg-tags-' + i + '" value="' + (s.tags||[]).join(', ') + '"></div>' +
       '</div>';
@@ -778,7 +671,7 @@ function removeCGShot(i) {
 
 function addColorGradingShot() {
   if (!DATA.colorGrading) DATA.colorGrading = [];
-  DATA.colorGrading.push({ cat:'Color Grading', title:'New Shot', desc:'', tags:['LUT','Grade'], orientation:'landscape', beforeData:'', afterData:'' });
+  DATA.colorGrading.push({ cat:'Color Grading', title:'New Shot', desc:'', tags:['LUT','Grade'], beforeData:'', afterData:'' });
   renderCGEditor();
   setTimeout(() => {
     const cards = document.querySelectorAll('#cg-editor .admin-card');
@@ -806,8 +699,7 @@ function applyChanges() {
   DATA.emailjsTemplateId = get('edit-ejs-template');
 
   DATA.videos = DATA.videos.map((v,i)=>({
-    beforeDriveUrl: (document.getElementById('vid-before-url-'+i) ? document.getElementById('vid-before-url-'+i).value.trim() : (v.beforeDriveUrl||'')),
-    afterDriveUrl:  (document.getElementById('vid-after-url-'+i)  ? document.getElementById('vid-after-url-'+i).value.trim()  : (v.afterDriveUrl||'')),
+    driveUrl:   (document.getElementById('vid-url-'+i) ? document.getElementById('vid-url-'+i).value.trim() : (v.driveUrl || v.afterDriveUrl || v.beforeDriveUrl || '')),
     posterData: v.posterData || '',
     type: (document.getElementById('vid-type-'+i) ? document.getElementById('vid-type-'+i).value : (v.type||'video')),
     cat: get('vid-cat-'+i),
@@ -817,13 +709,12 @@ function applyChanges() {
   }));
   if (!DATA.colorGrading) DATA.colorGrading = [];
   DATA.colorGrading = DATA.colorGrading.map((s,i)=>({
-    cat:         get('cg-cat-'+i)   || 'Color Grading',
-    title:       get('cg-title-'+i) || 'Untitled Shot',
-    desc:        get('cg-desc-'+i)  || '',
-    tags:        get('cg-tags-'+i).split(',').map(t=>t.trim()).filter(Boolean),
-    orientation: get('cg-orient-'+i) || 'landscape',
-    beforeData:  s.beforeData || '',
-    afterData:   s.afterData  || ''
+    cat:        get('cg-cat-'+i)   || 'Color Grading',
+    title:      get('cg-title-'+i) || 'Untitled Shot',
+    desc:       get('cg-desc-'+i)  || '',
+    tags:       get('cg-tags-'+i).split(',').map(t=>t.trim()).filter(Boolean),
+    beforeData: s.beforeData || '',
+    afterData:  s.afterData  || ''
   }));
   DATA.skills = DATA.skills.map((_,i)=>({
     icon: get(`sk-icon-${i}`), title: get(`sk-title-${i}`),
