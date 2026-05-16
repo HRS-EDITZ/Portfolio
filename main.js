@@ -89,7 +89,7 @@ function render() {
   const videosHTML = DATA.videos.length === 0
     ? '<p style="color:var(--muted);font-family:var(--font-mono);font-size:0.85rem;padding:2rem 0;">No videos yet. Open the admin panel → Videos tab to add your work.</p>'
     : DATA.videos.map((v,i) => {
-        const hasVideo = !!(extractDriveId(v.driveUrl || '') || extractDriveId(v.afterDriveUrl || '') || extractDriveId(v.beforeDriveUrl || ''));
+        const hasVideo = !!(extractDriveId(v.afterDriveUrl || '') || extractDriveId(v.beforeDriveUrl || ''));
         const isShort = (v.type === 'short');
         const hasPoster = v.posterData && v.posterData.length > 100;
         const thumbHTML = hasPoster
@@ -224,16 +224,13 @@ function buildDriveEmbed(driveUrl, isShort) {
   var id = extractDriveId(driveUrl);
   if (!id) return '';
   var embedUrl = driveEmbedUrl(id);
-  var style = isShort
-    ? 'width:100%;height:100%;border:none;display:block;'
-    : 'width:100%;height:100%;border:none;display:block;';
   return '<div style="position:relative;width:100%;height:100%;">' +
     '<iframe src="' + embedUrl + '" ' +
-    'style="' + style + '" ' +
+    'style="width:100%;height:100%;border:none;display:block;" ' +
     'allowfullscreen ' +
-    'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups">' +
+    'allow="autoplay; encrypted-media; fullscreen; picture-in-picture" ' +
+    'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-forms allow-popups-to-escape-sandbox">' +
     '</iframe>' +
-    '<div style="position:absolute;top:0;right:0;width:70px;height:55px;z-index:10;background:#000;pointer-events:all;cursor:default;"></div>' +
     '</div>';
 }
 
@@ -241,20 +238,35 @@ var _lbIdx = 0;
 
 function openLightbox(i) {
   _lbIdx = i;
-  var v       = DATA.videos[i];
+  var v = DATA.videos[i];
   var isShort = (v.type === 'short');
-  var frame   = document.getElementById('video-lightbox-frame');
-  var lbInner = document.getElementById('video-lightbox-inner');
+  var frame    = document.getElementById('video-lightbox-frame');
+  var lbInner  = document.getElementById('video-lightbox-inner');
+  var tabBar   = document.getElementById('lb-tab-bar');
+  var beforeBtn = document.getElementById('lb-before-btn');
+  var afterBtn  = document.getElementById('lb-after-btn');
+  var hasBefore = !!extractDriveId(v.beforeDriveUrl);
+  var hasAfter  = !!extractDriveId(v.afterDriveUrl);
 
-  if (isShort) { frame.classList.add('type-short');    lbInner.classList.add('type-short'); }
-  else         { frame.classList.remove('type-short'); lbInner.classList.remove('type-short'); }
-
-  // Support legacy beforeDriveUrl/afterDriveUrl data as fallback
-  var url = v.driveUrl || v.afterDriveUrl || v.beforeDriveUrl || '';
-
-  if (!extractDriveId(url)) {
-    frame.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:1rem;color:var(--muted);font-family:var(--font-mono);font-size:0.85rem;text-align:center;padding:2rem;">📭<br>No video linked yet.<br><span style="font-size:0.72rem;opacity:0.6;">Open admin panel → Videos tab and paste your Google Drive share link.</span></div>';
+  if (isShort) {
+    frame.classList.add('type-short');
+    lbInner.classList.add('type-short');
   } else {
+    frame.classList.remove('type-short');
+    lbInner.classList.remove('type-short');
+  }
+
+  tabBar.classList.remove('visible');
+
+  if (!hasBefore && !hasAfter) {
+    frame.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:1rem;color:var(--muted);font-family:var(--font-mono);font-size:0.85rem;text-align:center;padding:2rem;">📭<br>No video linked yet.<br><span style="font-size:0.72rem;opacity:0.6;">Open admin panel → Videos tab and paste your Google Drive share link.</span></div>';
+  } else if (hasBefore && hasAfter) {
+    tabBar.classList.add('visible');
+    beforeBtn.className = 'lb-tab-btn active';
+    afterBtn.className  = 'lb-tab-btn inactive';
+    frame.innerHTML = buildDriveEmbed(v.beforeDriveUrl, isShort);
+  } else {
+    var url = hasAfter ? v.afterDriveUrl : v.beforeDriveUrl;
     frame.innerHTML = buildDriveEmbed(url, isShort);
   }
 
@@ -263,9 +275,28 @@ function openLightbox(i) {
   document.body.style.overflow = 'hidden';
 }
 
+function switchLightboxVideo(type, i) {
+  var v = DATA.videos[i];
+  var isShort = (v.type === 'short');
+  var beforeBtn = document.getElementById('lb-before-btn');
+  var afterBtn  = document.getElementById('lb-after-btn');
+  var frame     = document.getElementById('video-lightbox-frame');
+  var url = (type === 'before') ? v.beforeDriveUrl : v.afterDriveUrl;
+  if (!extractDriveId(url)) return;
+  frame.innerHTML = buildDriveEmbed(url, isShort);
+  if (type === 'before') {
+    beforeBtn.className = 'lb-tab-btn active';
+    afterBtn.className  = 'lb-tab-btn inactive';
+  } else {
+    afterBtn.className  = 'lb-tab-btn active';
+    beforeBtn.className = 'lb-tab-btn inactive';
+  }
+}
+
 function closeLightbox() {
   document.getElementById('video-lightbox').classList.remove('open');
   document.getElementById('video-lightbox-frame').innerHTML = '';
+  document.getElementById('lb-tab-bar').classList.remove('visible');
   document.body.style.overflow = '';
 }
 
@@ -458,13 +489,15 @@ function renderVideoEditor() {
   if (!c) return;
   c.innerHTML = '';
   DATA.videos.forEach((v, i) => {
-    // Support legacy data: use driveUrl, fall back to afterDriveUrl or beforeDriveUrl
-    const currentUrl = v.driveUrl || v.afterDriveUrl || v.beforeDriveUrl || '';
-    const hasUrl  = !!extractDriveId(currentUrl);
+    const hasBefore = !!extractDriveId(v.beforeDriveUrl || '');
+    const hasAfter  = !!extractDriveId(v.afterDriveUrl  || '');
     const hasPoster = v.posterData && v.posterData.length > 100;
 
-    const urlIdHtml = hasUrl
-      ? '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID detected: ' + extractDriveId(currentUrl) + '</div>'
+    const beforeIdHtml = hasBefore
+      ? '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID detected: ' + extractDriveId(v.beforeDriveUrl) + '</div>'
+      : '';
+    const afterIdHtml = hasAfter
+      ? '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID detected: ' + extractDriveId(v.afterDriveUrl) + '</div>'
       : '';
 
     c.innerHTML +=
@@ -475,14 +508,20 @@ function renderVideoEditor() {
       '</div>' +
 
       '<div class="form-group">' +
-      '<label>🎬 Google Drive Share Link</label>' +
-      '<input type="text" id="vid-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + currentUrl + '" oninput="previewDriveLink(' + i + ')">' +
-      '<div id="vid-url-preview-' + i + '">' + urlIdHtml + '</div>' +
+      '<label>🎞️ Before Edit — Google Drive Share Link</label>' +
+      '<input type="text" id="vid-before-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + (v.beforeDriveUrl || '') + '" oninput="previewDriveLink(&apos;before&apos;,' + i + ')">' +
+      '<div id="vid-before-preview-' + i + '">' + beforeIdHtml + '</div>' +
+      '</div>' +
+
+      '<div class="form-group">' +
+      '<label>✨ After Edit — Google Drive Share Link</label>' +
+      '<input type="text" id="vid-after-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + (v.afterDriveUrl || '') + '" oninput="previewDriveLink(&apos;after&apos;,' + i + ')">' +
+      '<div id="vid-after-preview-' + i + '">' + afterIdHtml + '</div>' +
       '</div>' +
 
       '<div class="form-group">' +
       '<label>🖼️ Thumbnail Image (optional — shown on video card)</label>' +
-      '<div class="vid-upload-area" id="vid-poster-area-' + i + '" onclick="document.getElementById(\'vid-poster-' + i + '\').click()">' +
+      '<div class="vid-upload-area" id="vid-poster-area-' + i + '" onclick="document.getElementById(&apos;vid-poster-&apos;+' + i + '+&apos;&apos;).click()">' +
       (hasPoster
         ? '<span style="color:var(--accent)">✅ Thumbnail uploaded</span>'
         : '<span>🖼️ Click to upload thumbnail (JPG/PNG)</span>') +
@@ -507,10 +546,12 @@ function renderVideoEditor() {
   });
 }
 
-function previewDriveLink(i) {
-  var url       = document.getElementById('vid-url-' + i).value.trim();
-  var previewEl = document.getElementById('vid-url-preview-' + i);
+function previewDriveLink(type, i) {
+  var inputId = 'vid-' + type + '-url-' + i;
+  var previewId = 'vid-' + type + '-preview-' + i;
+  var url = document.getElementById(inputId).value.trim();
   var id = extractDriveId(url);
+  var previewEl = document.getElementById(previewId);
   if (id) {
     previewEl.innerHTML = '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID detected: ' + id + '</div>';
   } else if (url.length > 0) {
@@ -535,7 +576,7 @@ function handlePosterFile(event, i) {
 function removeVideo(i) { DATA.videos.splice(i, 1); renderVideoEditor(); }
 
 function addVideo() {
-  DATA.videos.push({title:'My Video',cat:'Category',desc:'Describe this video.',tags:['CapCut'],type:'video',driveUrl:'',posterData:''});
+  DATA.videos.push({title:'My Video',cat:'Category',desc:'Describe this video.',tags:['CapCut'],type:'video',beforeDriveUrl:'',afterDriveUrl:'',posterData:''});
   renderVideoEditor();
   setTimeout(() => {
     const cards = document.querySelectorAll('#videos-editor .admin-card');
@@ -699,7 +740,8 @@ function applyChanges() {
   DATA.emailjsTemplateId = get('edit-ejs-template');
 
   DATA.videos = DATA.videos.map((v,i)=>({
-    driveUrl:   (document.getElementById('vid-url-'+i) ? document.getElementById('vid-url-'+i).value.trim() : (v.driveUrl || v.afterDriveUrl || v.beforeDriveUrl || '')),
+    beforeDriveUrl: (document.getElementById('vid-before-url-'+i) ? document.getElementById('vid-before-url-'+i).value.trim() : (v.beforeDriveUrl||'')),
+    afterDriveUrl:  (document.getElementById('vid-after-url-'+i)  ? document.getElementById('vid-after-url-'+i).value.trim()  : (v.afterDriveUrl||'')),
     posterData: v.posterData || '',
     type: (document.getElementById('vid-type-'+i) ? document.getElementById('vid-type-'+i).value : (v.type||'video')),
     cat: get('vid-cat-'+i),
