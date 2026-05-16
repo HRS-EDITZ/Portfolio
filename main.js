@@ -98,9 +98,9 @@ function render() {
         const typeLabel = isShort
           ? '<div style="position:absolute;top:0.6rem;left:0.6rem;background:rgba(0,0,0,0.7);color:var(--accent);font-family:var(--font-mono);font-size:0.62rem;padding:0.2rem 0.5rem;border-radius:2px;letter-spacing:0.06em;">REEL</div>'
           : '';
-        return '<div class="video-card' + (isShort ? ' type-short' : '') + '" onclick="openLightbox(' + i + ')" style="' + (!hasVideo ? 'opacity:0.5;pointer-events:none;' : '') + '">' +
+        return '<div class="video-card' + (isShort ? ' type-short' : '') + '" onclick="openLightbox(' + i + ')" style="cursor:pointer;' + (!hasVideo ? 'opacity:0.5;pointer-events:none;' : '') + '">' +
           '<div class="video-thumb"' + (isShort ? ' style="aspect-ratio:9/16;"' : '') + '>' + thumbHTML +
-          '<div class="video-play-btn"><div class="video-play-icon"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div></div>' +
+          '<div class="video-play-btn" onclick="openLightbox(' + i + ')"><div class="video-play-icon"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div></div>' +
           typeLabel +
           (!hasVideo ? '<div style="position:absolute;bottom:0.5rem;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:0.65rem;color:var(--muted);white-space:nowrap;">No video added</div>' : '') +
           '</div>' +
@@ -144,6 +144,7 @@ function render() {
           '</div></div>';
       }).join('');
   setHTML('cg-container', cgHTML);
+  setTimeout(initCGCardSliders, 0);
   setHTML('hero-tags', DATA.tags.map((t,i)=>`<span class="tag ${tagColors[i%4]}">${t}</span>`).join(''));
 
   setHTML('about-pills', DATA.pills.map(p=>`<span class="pill">${p}</span>`).join(''));
@@ -234,16 +235,14 @@ function buildDriveEmbed(driveUrl, isShort) {
   var id = extractDriveId(driveUrl);
   if (!id) return '';
   var embedUrl = driveEmbedUrl(id);
-  var style = isShort
-    ? 'width:100%;height:100%;border:none;display:block;'
-    : 'width:100%;height:100%;border:none;display:block;';
+  var style = 'width:100%;height:100%;border:none;display:block;';
   return '<div style="position:relative;width:100%;height:100%;">' +
     '<iframe src="' + embedUrl + '" ' +
     'style="' + style + '" ' +
     'allowfullscreen ' +
-    'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups">' +
+    'allow="autoplay; fullscreen" ' +
+    'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms">' +
     '</iframe>' +
-    '<div style="position:absolute;top:0;right:0;width:70px;height:55px;z-index:10;background:#000;pointer-events:all;cursor:default;"></div>' +
     '</div>';
 }
 
@@ -301,6 +300,41 @@ function moveCGSlider(input, i) {
   if (divEl)   divEl.style.left = pct + '%';
 }
 
+/* Mobile-safe pointer drag for card sliders — called after render() builds the DOM */
+function initCGCardSliders() {
+  document.querySelectorAll('.cg-slider-wrap').forEach(function(wrap, i) {
+    var range  = wrap.querySelector('.cg-range');
+    var afterEl = document.getElementById('cg-after-' + i);
+    var divEl   = document.getElementById('cg-div-'   + i);
+    if (!range) return;
+
+    function applyPct(clientX) {
+      var rect = wrap.getBoundingClientRect();
+      var pct  = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
+      range.value = pct;
+      if (afterEl) afterEl.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
+      if (divEl)   divEl.style.left = pct + '%';
+    }
+
+    var dragging = false;
+    range.addEventListener('pointerdown', function(e) {
+      dragging = true;
+      range.setPointerCapture(e.pointerId);
+      e.stopPropagation();
+      applyPct(e.clientX);
+    });
+    range.addEventListener('pointermove', function(e) {
+      if (!dragging) return;
+      e.stopPropagation();
+      applyPct(e.clientX);
+    });
+    range.addEventListener('pointerup',     function() { dragging = false; });
+    range.addEventListener('pointercancel', function() { dragging = false; });
+    /* keep click from bubbling up to openCGLightbox */
+    range.addEventListener('click', function(e) { e.stopPropagation(); });
+  });
+}
+
 function openCGLightbox(i) {
   var s = (DATA.colorGrading || [])[i];
   if (!s) return;
@@ -326,13 +360,41 @@ document.getElementById('cg-lightbox').addEventListener('click', function(e) {
 });
 
 (function initCGLbSlider() {
-  var range = document.getElementById('cg-lb-range');
-  if (!range) return;
+  var wrap   = document.getElementById('cg-lb-slider-wrap');
+  var range  = document.getElementById('cg-lb-range');
+  var afterEl = document.getElementById('cg-lb-after');
+  var divEl   = document.getElementById('cg-lb-divider');
+  if (!range || !wrap) return;
+
+  function applyPct(clientX) {
+    var rect = wrap.getBoundingClientRect();
+    var pct  = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
+    range.value = pct;
+    if (afterEl) afterEl.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
+    if (divEl)   divEl.style.left = pct + '%';
+  }
+
+  /* range input event (desktop fallback) */
   range.addEventListener('input', function() {
-    var pct = this.value;
-    document.getElementById('cg-lb-after').style.clipPath    = 'inset(0 ' + (100-pct) + '% 0 0)';
-    document.getElementById('cg-lb-divider').style.left = pct + '%';
+    applyPct(range.getBoundingClientRect().left + (range.value / 100) * range.getBoundingClientRect().width);
+    var pct = range.value;
+    if (afterEl) afterEl.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
+    if (divEl)   divEl.style.left = pct + '%';
   });
+
+  /* pointer events for mobile */
+  var dragging = false;
+  range.addEventListener('pointerdown', function(e) {
+    dragging = true;
+    range.setPointerCapture(e.pointerId);
+    applyPct(e.clientX);
+  });
+  range.addEventListener('pointermove', function(e) {
+    if (!dragging) return;
+    applyPct(e.clientX);
+  });
+  range.addEventListener('pointerup',     function() { dragging = false; });
+  range.addEventListener('pointercancel', function() { dragging = false; });
 })();
 function openDrawer() {
   document.getElementById('nav-drawer').classList.add('open');
