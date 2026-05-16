@@ -173,6 +173,18 @@ function render() {
     </div>`).join(''));
 }
 
+// Migrate old before/after video data to single driveUrl
+if (DATA.videos) {
+  DATA.videos = DATA.videos.map(function(v) {
+    if (!v.driveUrl) {
+      v.driveUrl = v.afterDriveUrl || v.beforeDriveUrl || '';
+    }
+    delete v.beforeDriveUrl;
+    delete v.afterDriveUrl;
+    return v;
+  });
+}
+
 render();
 
 
