@@ -224,13 +224,16 @@ function buildDriveEmbed(driveUrl, isShort) {
   var id = extractDriveId(driveUrl);
   if (!id) return '';
   var embedUrl = driveEmbedUrl(id);
+  var style = isShort
+    ? 'width:100%;height:100%;border:none;display:block;'
+    : 'width:100%;height:100%;border:none;display:block;';
   return '<div style="position:relative;width:100%;height:100%;">' +
     '<iframe src="' + embedUrl + '" ' +
-    'style="width:100%;height:100%;border:none;display:block;" ' +
+    'style="' + style + '" ' +
     'allowfullscreen ' +
-    'allow="autoplay; encrypted-media; fullscreen; picture-in-picture" ' +
-    'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-forms allow-popups-to-escape-sandbox">' +
+    'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups">' +
     '</iframe>' +
+    '<div style="position:absolute;top:0;right:0;width:70px;height:55px;z-index:10;background:#000;pointer-events:all;cursor:default;"></div>' +
     '</div>';
 }
 
@@ -245,8 +248,8 @@ function openLightbox(i) {
   var tabBar   = document.getElementById('lb-tab-bar');
   var beforeBtn = document.getElementById('lb-before-btn');
   var afterBtn  = document.getElementById('lb-after-btn');
-  var hasBefore = !!extractDriveId(v.beforeDriveUrl);
-  var hasAfter  = !!extractDriveId(v.afterDriveUrl);
+  var hasBefore = !!extractDriveId(v.beforeDriveUrl || '');
+  var hasAfter  = !!extractDriveId(v.afterDriveUrl  || '');
 
   if (isShort) {
     frame.classList.add('type-short');
@@ -405,18 +408,6 @@ function removeBrandLogo() {
   render();
 }
 
-/* ── Admin trigger: triple-click the dot OR press Ctrl+Shift+E ── */
-let clickCount = 0, clickTimer;
-const _editTrigger = document.getElementById('edit-trigger');
-if (_editTrigger) {
-  _editTrigger.addEventListener('click', function(e) {
-    e.stopPropagation();
-    clickCount++;
-    clearTimeout(clickTimer);
-    clickTimer = setTimeout(function() { clickCount = 0; }, 2000);
-    if (clickCount >= 3) { clickCount = 0; openPwd(); }
-  });
-}
 /* Keyboard shortcut: Ctrl + Shift + E */
 document.addEventListener('keydown', function(e) {
   if (e.ctrlKey && e.shiftKey && e.key === 'E') { e.preventDefault(); openPwd(); }
@@ -1348,7 +1339,7 @@ async function autoFetchFromGitHub() {
 (function() {
   var origOpen = window.openAdmin;
   window.openAdmin = function() {
-    origOpen();
+    if (typeof origOpen === 'function') origOpen();
     loadGitHubSettings();
   };
   autoFetchFromGitHub();
