@@ -2,308 +2,137 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HARIHARAN'S Portfolio</title>
-<link rel="icon" type="image/png" sizes="128x128" href="test1.png">
+<link rel="icon" type="image/png" sizes="128x128" href="test.png">
 
 
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Playfair+Display:ital,wght@0,700;0,900;1,700&amp;family=JetBrains+Mono:wght@300;400;500&amp;display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="styles.css">
+<style>
+/* ── HARIHARAN EDITZ  — Gold Shine Animation ── */
+.brand-main {
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(
+    90deg,
+    #c8960c 0%,
+    #e8c547 20%,
+    #fff8d6 40%,
+    #ffe066 50%,
+    #fff8d6 60%,
+    #e8c547 80%,
+    #c8960c 100%
+  );
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: brandShine 3s linear infinite;
+}
+
+@keyframes brandShine {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+/* Glint sweep overlay on top of the text */
+.brand-main::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: brandGlint 3s ease-in-out infinite;
+  pointer-events: none;
+  /* clip it to the text shape */
+  -webkit-background-clip: text;
+  background-clip: text;
+  mix-blend-mode: screen;
+}
+
+@keyframes brandGlint {
+  0%   { background-position: 160% center; opacity: 0; }
+  30%  { opacity: 1; }
+  60%  { background-position: -60% center; opacity: 0; }
+  100% { background-position: -60% center; opacity: 0; }
+}
+
+/* ── Favicon pulse glow (tab icon ring) — CSS only trick via body outline ── */
+/* Animated favicon shimmer via SVG data-URI injected by script below */
+</style>
+<script>
+/* Animated favicon — golden shimmer that cycles every 2 s */
+(function () {
+  const frames = [];
+  const steps = 12;
+  for (let i = 0; i < steps; i++) {
+    const pct = (i / steps) * 100;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+
+    /* dark background circle */
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(32, 32, 32, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* gold ring */
+    ctx.strokeStyle = `hsl(${45 + pct * 0.5}, 90%, ${50 + 15 * Math.sin(pct / 100 * Math.PI * 2)}%)`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(32, 32, 28, 0, Math.PI * 2);
+    ctx.stroke();
+
+    /* "H" letter in gold with shine */
+    const grad = ctx.createLinearGradient(14, 0, 50, 0);
+    const shift = pct / 100;
+    grad.addColorStop(Math.max(0, shift - 0.3), '#c8960c');
+    grad.addColorStop(shift, '#fff8a0');
+    grad.addColorStop(Math.min(1, shift + 0.3), '#e8c547');
+    ctx.fillStyle = grad;
+    ctx.font = 'bold 36px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('H', 32, 34);
+
+    frames.push(canvas.toDataURL('image/png'));
+  }
+
+  let fi = 0;
+  const link = document.querySelector("link[rel~='icon']") || (() => {
+    const l = document.createElement('link');
+    l.rel = 'icon';
+    document.head.appendChild(l);
+    return l;
+  })();
+
+  setInterval(() => {
+    link.href = frames[fi % frames.length];
+    fi++;
+  }, 120);
+})();
+</script>
 </head>
 <body>
 
-<!-- PORTFOLIO INTRO — MEGA CINEMATIC EDITION -->
-<style>
-/* ══════════════════════════════════════════
-   INTRO OVERLAY
-══════════════════════════════════════════ */
-#portfolio-intro {
-  position:fixed;inset:0;z-index:99999;
-  background:#050505;overflow:hidden;cursor:pointer;
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-}
-#portfolio-intro.exit {
-  animation:ci-exit 0.9s cubic-bezier(.76,0,.24,1) forwards;
-}
-@keyframes ci-exit {
-  0%  { opacity:1; transform:scale(1); }
-  60% { opacity:1; transform:scale(1.04); }
-  100%{ opacity:0; transform:scale(1.04); pointer-events:none; }
-}
-
-/* ── Ambient glow canvas ── */
-#ci-canvas {
-  position:absolute;inset:0;width:100%;height:100%;z-index:0;
-}
-
-/* ── Film grain ── */
-#ci-grain {
-  position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0.045;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size:180px;animation:ci-grain-drift 0.15s steps(1) infinite;
-}
-@keyframes ci-grain-drift {
-  0%  { background-position: 0 0; }
-  25% { background-position: -30px 20px; }
-  50% { background-position: 15px -10px; }
-  75% { background-position: -20px -25px; }
-  100%{ background-position: 0 0; }
-}
-
-/* ── Scanlines ── */
-#ci-scanlines {
-  position:absolute;inset:0;z-index:2;pointer-events:none;
-  background:repeating-linear-gradient(
-    to bottom,transparent 0,transparent 3px,
-    rgba(0,0,0,0.13) 3px,rgba(0,0,0,0.13) 4px
-  );
-}
-
-/* ── Letterbox bars ── */
-#ci-bar-t,#ci-bar-b {
-  position:absolute;left:0;right:0;height:70px;z-index:3;
-  background:#000;
-}
-#ci-bar-t { top:0; animation:ci-bar-t-in 0.7s 0.1s cubic-bezier(.76,0,.24,1) both; }
-#ci-bar-b { bottom:0; animation:ci-bar-b-in 0.7s 0.1s cubic-bezier(.76,0,.24,1) both; }
-@keyframes ci-bar-t-in { from{transform:translateY(-100%)} to{transform:translateY(0)} }
-@keyframes ci-bar-b-in { from{transform:translateY(100%)}  to{transform:translateY(0)} }
-
-/* ── HUD metadata corners ── */
-.ci-hud {
-  position:absolute;z-index:8;
-  font-family:'JetBrains Mono',monospace;
-  font-size:0.62rem;letter-spacing:0.18em;
-  color:rgba(232,197,71,0.55);
-  text-transform:uppercase;
-  display:flex;align-items:center;gap:0.4rem;
-  animation:ci-hud-in 0.6s 0.8s ease both;
-}
-@keyframes ci-hud-in { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
-.ci-hud-tl { top:18px;  left:22px;  }
-.ci-hud-tr { top:18px;  right:22px; }
-.ci-hud-bl { bottom:18px; left:22px;  }
-.ci-hud-br { bottom:18px; right:22px; }
-.ci-hud-sep { color:rgba(232,197,71,0.25); }
-.ci-rec {
-  width:7px;height:7px;border-radius:50%;
-  background:#e8c547;
-  box-shadow:0 0 8px rgba(232,197,71,0.9);
-  animation:ci-rec-blink 1.1s ease-in-out infinite;
-}
-@keyframes ci-rec-blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
-
-/* ── Corner brackets ── */
-.ci-corner {
-  position:absolute;z-index:8;width:50px;height:50px;
-  animation:ci-hud-in 0.6s 0.6s ease both;
-}
-.ci-corner.tl { top:10px;  left:10px;  }
-.ci-corner.tr { top:10px;  right:10px; }
-.ci-corner.bl { bottom:10px; left:10px;  }
-.ci-corner.br { bottom:10px; right:10px; }
-
-/* ── CENTER wrapper ── */
-#ci-center {
-  position:relative;z-index:5;
-  display:flex;flex-direction:column;
-  align-items:center;gap:0;
-  text-align:center;
-}
-
-/* ── LOGO WRAP ── */
-#ci-logo-wrap {
-  position:relative;
-  width:120px;height:120px;
-  display:flex;align-items:center;justify-content:center;
-  margin-bottom:1.8rem;
-  animation:ci-logo-pop 0.7s 0.5s cubic-bezier(.34,1.56,.64,1) both;
-}
-@keyframes ci-logo-pop {
-  from { opacity:0; transform:scale(0.3) rotate(-20deg); }
-  to   { opacity:1; transform:scale(1)   rotate(0deg);   }
-}
-
-/* Spinning rings */
-#ci-logo-ring {
-  position:absolute;inset:-8px;border-radius:50%;
-  border:1.5px solid transparent;
-  border-top-color:rgba(232,197,71,0.9);
-  border-right-color:rgba(232,197,71,0.3);
-  animation:ci-spin 2s linear infinite;
-}
-#ci-logo-ring2 {
-  position:absolute;inset:-16px;border-radius:50%;
-  border:1px solid transparent;
-  border-bottom-color:rgba(232,197,71,0.5);
-  border-left-color:rgba(232,197,71,0.15);
-  animation:ci-spin 3.5s linear infinite reverse;
-}
-@keyframes ci-spin { to { transform:rotate(360deg); } }
-
-/* Logo inner circle */
-#ci-logo-inner {
-  width:110px;height:110px;border-radius:50%;
-  background:#0d0d0d;
-  border:2px solid rgba(232,197,71,0.35);
-  box-shadow:0 0 30px rgba(232,197,71,0.18), inset 0 0 20px rgba(232,197,71,0.05);
-  overflow:hidden;
-  display:flex;align-items:center;justify-content:center;
-  position:relative;
-}
-
-/* ── LOGO SHINE — only on logo, sweeps after pop ── */
-#ci-logo-inner::after {
-  content:'';
-  position:absolute;inset:0;border-radius:50%;
-  background:linear-gradient(
-    118deg,
-    transparent 25%,
-    rgba(255,255,255,0.55) 47%,
-    rgba(255,245,180,0.35) 52%,
-    transparent 68%
-  );
-  transform:translateX(-160%) skewX(-10deg);
-  animation:ci-logo-shine 0.8s 1.3s ease-in-out forwards;
-}
-@keyframes ci-logo-shine {
-  0%   { transform:translateX(-160%) skewX(-10deg); }
-  100% { transform:translateX(160%)  skewX(-10deg); }
-}
-
-/* ── TITLE SECTION ── */
-#ci-title {
-  display:flex;flex-direction:column;align-items:center;
-}
-.ci-director-label {
-  font-family:'JetBrains Mono',monospace;
-  font-size:0.65rem;letter-spacing:0.5em;
-  text-transform:uppercase;color:rgba(232,197,71,0.5);
-  margin-bottom:0.8rem;
-  animation:ci-hud-in 0.5s 1s ease both;
-}
-
-/* Name lines */
-.ci-name-wrap {
-  overflow:hidden;line-height:1.05;
-}
-.ci-name-line {
-  display:block;
-  font-family:'Space Grotesk',sans-serif;
-  font-size:clamp(2.8rem,8vw,6rem);
-  font-weight:800;
-  letter-spacing:0.12em;
-  text-transform:uppercase;
-  color:#fff;
-}
-.ci-name-wrap.sub .ci-name-line {
-  font-size:clamp(1.6rem,4.5vw,3.2rem);
-  font-weight:700;
-  letter-spacing:0.38em;
-  color:#e8c547;
-}
-
-/* Individual stamped characters */
-.ci-char {
-  display:inline-block;
-  opacity:0;
-  animation:ci-char-stamp 0.18s ease-out forwards;
-  transform-origin:bottom center;
-}
-@keyframes ci-char-stamp {
-  0%  { opacity:0; transform:translateY(-28px) scale(1.4); }
-  55% { opacity:1; transform:translateY(4px)   scale(0.96); }
-  100%{ opacity:1; transform:translateY(0)     scale(1); }
-}
-/* Colour variants — subtle tint per character */
-.ci-char.c0 { color:#fff; }
-.ci-char.c1 { color:#f0e8c8; }
-.ci-char.c2 { color:#e8c547; }
-.ci-char.c3 { color:#fff; }
-.ci-char.c4 { color:#d4b93a; }
-
-/* Divider */
-#ci-divider {
-  height:1px;width:0;margin:1rem auto 0;
-  background:linear-gradient(90deg,transparent,rgba(232,197,71,0.7),transparent);
-  transition:none;
-}
-#ci-divider.grow {
-  animation:ci-divider-grow 0.7s 0.3s ease-out forwards;
-}
-@keyframes ci-divider-grow { to { width:280px; } }
-
-/* Tagline */
-#ci-tagline {
-  font-family:'JetBrains Mono',monospace;
-  font-size:0.7rem;letter-spacing:0.45em;
-  text-transform:uppercase;
-  color:rgba(232,197,71,0.6);
-  margin-top:0.85rem;
-  opacity:0;transform:translateY(10px);
-}
-#ci-tagline.show {
-  animation:ci-tagline-in 0.6s 0.5s ease-out forwards;
-}
-@keyframes ci-tagline-in { to { opacity:1; transform:translateY(0); } }
-
-/* ── LOADING BAR ── */
-#ci-loader {
-  position:absolute;bottom:82px;left:50%;transform:translateX(-50%);
-  width:min(380px,80vw);z-index:8;
-  animation:ci-hud-in 0.5s 0.8s ease both;
-}
-#ci-loader-label {
-  display:flex;justify-content:space-between;
-  font-family:'JetBrains Mono',monospace;
-  font-size:0.6rem;letter-spacing:0.2em;
-  color:rgba(232,197,71,0.5);
-  margin-bottom:0.5rem;
-}
-#ci-loader-track {
-  height:2px;background:rgba(232,197,71,0.12);
-  border-radius:2px;overflow:hidden;
-}
-#ci-loader-fill {
-  height:100%;width:0%;
-  background:linear-gradient(90deg,rgba(232,197,71,0.4),#e8c547,rgba(255,255,200,0.9));
-  border-radius:2px;
-  transition:width 0.6s cubic-bezier(.4,0,.2,1);
-  box-shadow:0 0 12px rgba(232,197,71,0.6);
-}
-
-/* ── SKIP ── */
-#ci-skip {
-  position:absolute;bottom:28px;
-  font-family:'JetBrains Mono',monospace;
-  font-size:0.6rem;letter-spacing:0.32em;
-  color:rgba(255,255,255,0.2);z-index:8;
-  animation:ci-skip-pulse 2.5s 2s ease-in-out infinite;
-}
-@keyframes ci-skip-pulse {
-  0%,100%{ opacity:0.2; } 50%{ opacity:0.5; }
-}
-
-/* ── PARTICLE BURST layer ── */
-#ci-particles {
-  position:absolute;inset:0;z-index:4;pointer-events:none;
-}
-</style>
-
+<!-- PORTFOLIO INTRO — FILM COUNTDOWN EDITION -->
 <div id="portfolio-intro" title="Click to skip">
 
-  <!-- Canvas: deep space ambient glow -->
+  <!-- Canvas: deep space ambient light -->
   <canvas id="ci-canvas"></canvas>
-
-  <!-- Particle burst canvas -->
-  <canvas id="ci-particles"></canvas>
 
   <!-- Film grain + scanlines -->
   <div id="ci-grain"></div>
   <div id="ci-scanlines"></div>
 
-  <!-- Letterbox bars -->
+  <!-- Letterbox bars (animate in) -->
   <div id="ci-bar-t"></div>
   <div id="ci-bar-b"></div>
 
@@ -342,27 +171,31 @@
     <svg viewBox="0 0 50 50" fill="none"><path d="M50 0L50 50L0 50" stroke="rgba(232,197,71,0.7)" stroke-width="1.5"/><circle cx="50" cy="50" r="2.5" fill="rgba(232,197,71,0.9)"/></svg>
   </div>
 
-  <!-- CENTER: Logo + Title -->
+  <!-- CENTER: Title reveal -->
   <div id="ci-center">
 
-    <!-- Logo (shine is CSS ::after on #ci-logo-inner — logo only, not name) -->
+    <!-- Logo above name -->
     <div id="ci-logo-wrap">
       <div id="ci-logo-ring"></div>
       <div id="ci-logo-ring2"></div>
       <div id="ci-logo-inner">
-        <img id="ci-logo-img" src="test.png" alt="Logo"
-             style="width:100%;height:100%;object-fit:cover;border-radius:50%;"
-             onerror="this.style.display='none';document.getElementById('ci-logo-fallback').style.display='flex'">
-        <svg id="ci-logo-fallback" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"
-             style="display:none;width:68px;height:68px;">
-          <text x="40" y="57" text-anchor="middle"
-                font-family="Space Grotesk,sans-serif"
-                font-size="54" font-weight="800" fill="#e8c547">H</text>
+        <img id="ci-logo-img" src="" alt="Logo" style="display:none; width:100%; height:100%; object-fit:contain; border-radius:50%;">
+        <svg id="ci-logo-fallback" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" width="70" height="70">
+          <rect x="10" y="28" width="60" height="44" rx="4" fill="none" stroke="#e8c547" stroke-width="2.5"/>
+          <line x1="10" y1="42" x2="70" y2="42" stroke="#e8c547" stroke-width="2"/>
+          <rect x="10" y="28" width="60" height="14" rx="4" fill="rgba(232,197,71,0.12)" stroke="#e8c547" stroke-width="2.5"/>
+          <rect x="22" y="10" width="8" height="20" rx="2" fill="#e8c547" transform="rotate(-18 26 20)"/>
+          <rect x="34" y="8" width="8" height="20" rx="2" fill="rgba(232,197,71,0.5)" transform="rotate(-18 38 18)"/>
+          <line x1="22" y1="28" x2="22" y2="42" stroke="rgba(0,0,0,0.3)" stroke-width="5"/>
+          <line x1="35" y1="28" x2="35" y2="42" stroke="rgba(0,0,0,0.3)" stroke-width="5"/>
+          <line x1="48" y1="28" x2="48" y2="42" stroke="rgba(0,0,0,0.3)" stroke-width="5"/>
+          <line x1="61" y1="28" x2="61" y2="42" stroke="rgba(0,0,0,0.3)" stroke-width="5"/>
+          <polygon points="34,53 34,67 50,60" fill="#e8c547" opacity="0.85"/>
         </svg>
       </div>
     </div>
 
-    <!-- Name reveal — typewriter via intro.js, NO shine here -->
+    <!-- Name reveal (shown immediately) -->
     <div id="ci-title">
       <div class="ci-director-label">Video Editor &amp; Colorist</div>
 
@@ -374,6 +207,7 @@
       </div>
 
       <div class="ci-divider" id="ci-divider"></div>
+
       <div class="ci-tagline" id="ci-tagline">Editing · Colourist</div>
     </div>
 
