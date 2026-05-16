@@ -408,14 +408,23 @@ function removeBrandLogo() {
   render();
 }
 
+/* ── Admin trigger: triple-click the dot OR press Ctrl+Shift+E ── */
 let clickCount = 0, clickTimer;
 const _editTrigger = document.getElementById('edit-trigger');
-if (_editTrigger) _editTrigger.addEventListener('click', () => {
-  clickCount++;
-  clearTimeout(clickTimer);
-  clickTimer = setTimeout(() => { clickCount = 0; }, 1500);
-  if (clickCount >= 3) { clickCount = 0; openPwd(); }
+if (_editTrigger) {
+  _editTrigger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    clickCount++;
+    clearTimeout(clickTimer);
+    clickTimer = setTimeout(function() { clickCount = 0; }, 2000);
+    if (clickCount >= 3) { clickCount = 0; openPwd(); }
+  });
+}
+/* Keyboard shortcut: Ctrl + Shift + E */
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.shiftKey && e.key === 'E') { e.preventDefault(); openPwd(); }
 });
+
 function openPwd() {
   document.getElementById('pwd-prompt').classList.add('open');
   document.getElementById('pwd-input').value = '';
