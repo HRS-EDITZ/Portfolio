@@ -10,113 +10,145 @@
 
   <link rel="stylesheet" href="styles.css">
 <style>
-/* ── HARIHARAN EDITZ  — Gold Shine Animation ── */
+/* ══════════════════════════════════════════════
+   HARIHARAN EDITZ — 5-Second Gold Shine
+   ══════════════════════════════════════════════ */
 .brand-main {
   position: relative;
   display: inline-block;
+  /* Gold base with travelling bright streak */
   background: linear-gradient(
-    90deg,
-    #c8960c 0%,
-    #e8c547 20%,
-    #fff8d6 40%,
-    #ffe066 50%,
-    #fff8d6 60%,
-    #e8c547 80%,
-    #c8960c 100%
+    100deg,
+    #a06800 0%,
+    #c8960c 15%,
+    #e8c547 30%,
+    #fff5a0 42%,
+    #ffffff 50%,
+    #fff5a0 58%,
+    #e8c547 70%,
+    #c8960c 85%,
+    #a06800 100%
   );
-  background-size: 250% auto;
+  background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: brandShine 3s linear infinite;
+  /* 5 second full cycle */
+  animation: brandShine5 5s ease-in-out infinite;
+  text-shadow: none;
 }
 
-@keyframes brandShine {
+@keyframes brandShine5 {
   0%   { background-position: 200% center; }
-  100% { background-position: -200% center; }
+  50%  { background-position: -100% center; }
+  100% { background-position: 200% center; }
 }
 
-/* Glint sweep overlay on top of the text */
+/* Bright glint sweep — once per 5s */
 .brand-main::after {
   content: '';
   position: absolute;
-  inset: 0;
+  top: 0; left: -75%;
+  width: 50%; height: 100%;
   background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.55) 50%,
-    transparent 70%
+    120deg,
+    transparent 0%,
+    rgba(255,255,220,0.0) 30%,
+    rgba(255,255,220,0.85) 50%,
+    rgba(255,255,220,0.0) 70%,
+    transparent 100%
   );
-  background-size: 200% 100%;
-  animation: brandGlint 3s ease-in-out infinite;
+  animation: brandGlint5 5s ease-in-out infinite;
   pointer-events: none;
-  /* clip it to the text shape */
-  -webkit-background-clip: text;
-  background-clip: text;
   mix-blend-mode: screen;
 }
 
-@keyframes brandGlint {
-  0%   { background-position: 160% center; opacity: 0; }
-  30%  { opacity: 1; }
-  60%  { background-position: -60% center; opacity: 0; }
-  100% { background-position: -60% center; opacity: 0; }
+@keyframes brandGlint5 {
+  0%   { left: -75%; opacity: 0; }
+  15%  { opacity: 0; }
+  40%  { left: 125%; opacity: 1; }
+  55%  { left: 125%; opacity: 0; }
+  100% { left: -75%; opacity: 0; }
 }
-
-/* ── Favicon pulse glow (tab icon ring) — CSS only trick via body outline ── */
-/* Animated favicon shimmer via SVG data-URI injected by script below */
 </style>
-<script>
-/* Animated favicon — golden shimmer that cycles every 2 s */
-(function () {
-  const frames = [];
-  const steps = 12;
-  for (let i = 0; i < steps; i++) {
-    const pct = (i / steps) * 100;
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 64;
-    const ctx = canvas.getContext('2d');
 
-    /* dark background circle */
-    ctx.fillStyle = '#111';
+<script>
+/* ── Animated Favicon: HRS gold shine, generated via Canvas ─────────────
+   Runs immediately — no external file needed, so favicon always shows.
+─────────────────────────────────────────────────────────────────────── */
+(function () {
+  'use strict';
+
+  /* Remove any existing favicon links so we have full control */
+  document.querySelectorAll("link[rel*='icon']").forEach(function(el){ el.remove(); });
+
+  /* Create the <link> tag we'll keep updating */
+  var link = document.createElement('link');
+  link.rel  = 'icon';
+  link.type = 'image/png';
+  document.head.appendChild(link);
+
+  var SIZE   = 64;
+  var STEPS  = 30;          /* frames per cycle */
+  var DELAY  = 5000 / STEPS; /* spread 5 s across frames */
+
+  /* Pre-render all frames */
+  var frames = [];
+  for (var i = 0; i < STEPS; i++) {
+    var canvas = document.createElement('canvas');
+    canvas.width = canvas.height = SIZE;
+    var ctx = canvas.getContext('2d');
+
+    /* ① Dark circle background */
+    ctx.fillStyle = '#0d0d0d';
     ctx.beginPath();
-    ctx.arc(32, 32, 32, 0, Math.PI * 2);
+    ctx.arc(SIZE/2, SIZE/2, SIZE/2, 0, Math.PI*2);
     ctx.fill();
 
-    /* gold ring */
-    ctx.strokeStyle = `hsl(${45 + pct * 0.5}, 90%, ${50 + 15 * Math.sin(pct / 100 * Math.PI * 2)}%)`;
-    ctx.lineWidth = 4;
+    /* ② Outer glowing gold ring */
+    var t = i / STEPS; /* 0 → 1 */
+    var ringBright = 45 + 25 * Math.sin(t * Math.PI * 2);
+    ctx.strokeStyle = 'hsl(45, 95%, ' + ringBright + '%)';
+    ctx.lineWidth = 5;
+    ctx.shadowColor = '#e8c547';
+    ctx.shadowBlur  = 8 + 6 * Math.sin(t * Math.PI * 2);
     ctx.beginPath();
-    ctx.arc(32, 32, 28, 0, Math.PI * 2);
+    ctx.arc(SIZE/2, SIZE/2, SIZE/2 - 4, 0, Math.PI*2);
     ctx.stroke();
+    ctx.shadowBlur = 0;
 
-    /* "H" letter in gold with shine */
-    const grad = ctx.createLinearGradient(14, 0, 50, 0);
-    const shift = pct / 100;
-    grad.addColorStop(Math.max(0, shift - 0.3), '#c8960c');
-    grad.addColorStop(shift, '#fff8a0');
-    grad.addColorStop(Math.min(1, shift + 0.3), '#e8c547');
+    /* ③ "HRS" text with travelling shine */
+    var grad = ctx.createLinearGradient(0, 0, SIZE, 0);
+    var shinePos = t; /* 0 → 1 across the icon */
+    var s0 = Math.max(0.0, shinePos - 0.35);
+    var s1 = Math.min(1.0, shinePos);
+    var s2 = Math.min(1.0, shinePos + 0.35);
+    if (s0 > 0)  grad.addColorStop(0,  '#a06800');
+    grad.addColorStop(s0, '#c8960c');
+    grad.addColorStop(s1, '#ffffff');
+    grad.addColorStop(s2, '#c8960c');
+    if (s2 < 1)  grad.addColorStop(1,  '#a06800');
+
     ctx.fillStyle = grad;
-    ctx.font = 'bold 36px serif';
-    ctx.textAlign = 'center';
+    ctx.font = 'bold 22px Arial, sans-serif';
+    ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('H', 32, 34);
+    ctx.shadowColor  = '#e8c547';
+    ctx.shadowBlur   = 6;
+    ctx.fillText('HRS', SIZE/2, SIZE/2 + 1);
+    ctx.shadowBlur = 0;
 
     frames.push(canvas.toDataURL('image/png'));
   }
 
-  let fi = 0;
-  const link = document.querySelector("link[rel~='icon']") || (() => {
-    const l = document.createElement('link');
-    l.rel = 'icon';
-    document.head.appendChild(l);
-    return l;
-  })();
-
-  setInterval(() => {
-    link.href = frames[fi % frames.length];
+  /* Animate */
+  var fi = 0;
+  function nextFrame() {
+    link.href = frames[fi % STEPS];
     fi++;
-  }, 120);
+    setTimeout(nextFrame, DELAY);
+  }
+  nextFrame();
 })();
 </script>
 </head>
