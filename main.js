@@ -306,8 +306,9 @@ function closeLightbox() {
 document.getElementById('video-lightbox').addEventListener('click', function(e) {
   if (e.target === this) closeLightbox();
 });
-document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeLightbox(); });
-
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeLightbox(); closeCGLightbox(); }
+});
 /* ═══════════════════════════════════════════════════════
    COLOR GRADING — card slider + lightbox
 ═══════════════════════════════════════════════════════ */
@@ -342,7 +343,6 @@ function closeCGLightbox() {
 document.getElementById('cg-lightbox').addEventListener('click', function(e) {
   if (e.target === this) closeCGLightbox();
 });
-document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeCGLightbox(); });
 
 (function initCGLbSlider() {
   var range = document.getElementById('cg-lb-range');
@@ -380,28 +380,6 @@ function updateDrawerLogo() {
   }
 }
 
-const dot = document.getElementById('cursor-dot');
-const ring = document.getElementById('cursor-ring');
-const ringEl = document.getElementById('cursor-ring-el');
-if (!('ontouchstart' in window) && navigator.maxTouchPoints === 0) {
-  if (dot && ring) {
-    document.addEventListener('mousemove', e => {
-      dot.style.left = e.clientX + 'px';
-      dot.style.top  = e.clientY + 'px';
-      ring.style.left = e.clientX + 'px';
-      ring.style.top  = e.clientY + 'px';
-    });
-  }
-  if (ringEl) {
-    document.querySelectorAll('a,button,.project-card,.skill-card').forEach(el => {
-      el.addEventListener('mouseenter', () => ringEl.classList.add('expand'));
-      el.addEventListener('mouseleave', () => ringEl.classList.remove('expand'));
-    });
-  }
-} else {
-  if (dot) dot.style.display = 'none';
-  if (ring) ring.style.display = 'none';
-}
 
 function handleLogoUpload(input) {
   var file = input.files[0];
