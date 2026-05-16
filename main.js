@@ -126,16 +126,13 @@ function render() {
             '<div class="cg-info"><div class="cg-shot-cat">' + (s.cat||'Color Grading') + '</div>' +
             '<div class="cg-shot-title">' + (s.title||'Untitled Shot') + '</div></div></div>';
         }
-        return '<div class="cg-card" onclick="openCGLightbox(' + i + ')">' +
-          '<div class="cg-slider-wrap" id="cg-card-wrap-' + i + '">' +
+        var orient = (s.orientation === 'portrait') ? 'portrait' : 'landscape';
+        var aspectStyle = (orient === 'portrait') ? 'aspect-ratio:9/16;' : 'aspect-ratio:16/9;';
+        return '<div class="cg-card cg-card-' + orient + '" onclick="openCGLightbox(' + i + ')">' +
+          '<div class="cg-slider-wrap" id="cg-card-wrap-' + i + '" style="' + aspectStyle + '">' +
           '<div class="cg-img-before" style="background-image:url(\'' + (hasBefore ? s.beforeData : s.afterData) + '\')"></div>' +
           '<div class="cg-img-after"  id="cg-after-' + i + '" style="background-image:url(\'' + (hasAfter  ? s.afterData  : s.beforeData) + '\')"></div>' +
-          '<input type="range" class="cg-range" min="0" max="100" value="50" ' +
-            'oninput="moveCGSlider(this,' + i + ')" ' +
-            'onclick="event.stopPropagation()" ' +
-            'ontouchstart="event.stopPropagation()" ' +
-            'ontouchmove="event.stopPropagation()">' +
-          '<div class="cg-divider" id="cg-div-' + i + '"></div>' +
+          '<div class="cg-drag-handle" id="cg-div-' + i + '"></div>' +
           '<div class="cg-label cg-label-before">BEFORE</div>' +
           '<div class="cg-label cg-label-after">AFTER</div>' +
           '</div>' +
@@ -147,6 +144,34 @@ function render() {
           '</div></div>';
       }).join('');
   setHTML('cg-container', cgHTML);
+  // Wire up pointer-event drag on each card slider (works on touch + mouse)
+  cgShots.forEach(function(s, i) {
+    var wrap   = document.getElementById('cg-card-wrap-' + i);
+    var after  = document.getElementById('cg-after-' + i);
+    var handle = document.getElementById('cg-div-' + i);
+    if (!wrap) return;
+    var dragging = false;
+    function applyPct(clientX) {
+      var rect = wrap.getBoundingClientRect();
+      var pct  = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+      if (after)  after.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
+      if (handle) handle.style.left    = pct + '%';
+    }
+    wrap.addEventListener('pointerdown', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      dragging = true;
+      wrap.setPointerCapture(e.pointerId);
+      applyPct(e.clientX);
+    });
+    wrap.addEventListener('pointermove', function(e) {
+      if (!dragging) return;
+      e.preventDefault();
+      applyPct(e.clientX);
+    });
+    wrap.addEventListener('pointerup',     function(e) { dragging = false; wrap.releasePointerCapture(e.pointerId); });
+    wrap.addEventListener('pointercancel', function()  { dragging = false; });
+    wrap.addEventListener('click',         function(e) { if (dragging) e.stopPropagation(); });
+  });
   setHTML('hero-tags', DATA.tags.map((t,i)=>`<span class="tag ${tagColors[i%4]}">${t}</span>`).join(''));
 
   setHTML('about-pills', DATA.pills.map(p=>`<span class="pill">${p}</span>`).join(''));
@@ -332,13 +357,12 @@ function openCGLightbox(i) {
   document.getElementById('cg-lb-after').style.backgroundImage  = 'url(\'' + (hasAfter  ? s.afterData  : '') + '\')';
   document.getElementById('cg-lb-after').style.clipPath = 'inset(0 50% 0 0)';
   document.getElementById('cg-lb-divider').style.left = '50%';
-  document.getElementById('cg-lb-range').value = 50;
   document.getElementById('cg-lightbox-title').textContent = s.title || '';
 
-  // Apply portrait/landscape mode to lightbox
+  // Apply orientation saved in admin
   var inner = document.getElementById('cg-lightbox-inner');
   var wrap  = document.getElementById('cg-lb-slider-wrap');
-  if (window._cgViewMode === 'portrait') {
+  if (s.orientation === 'portrait') {
     if (inner) inner.classList.add('portrait-mode');
     if (wrap)  wrap.classList.add('portrait-mode');
   } else {
@@ -348,23 +372,6 @@ function openCGLightbox(i) {
 
   document.getElementById('cg-lightbox').classList.add('open');
   document.body.style.overflow = 'hidden';
-}
-
-function setCGView(mode) {
-  window._cgViewMode = mode;
-  var grid = document.getElementById('cg-container');
-  var btnL = document.getElementById('cg-btn-landscape');
-  var btnP = document.getElementById('cg-btn-portrait');
-  if (!grid) return;
-  if (mode === 'portrait') {
-    grid.classList.add('portrait-mode');
-    if (btnL) { btnL.classList.remove('active'); }
-    if (btnP) { btnP.classList.add('active'); }
-  } else {
-    grid.classList.remove('portrait-mode');
-    if (btnL) { btnL.classList.add('active'); }
-    if (btnP) { btnP.classList.remove('active'); }
-  }
 }
 
 function closeCGLightbox() {
@@ -377,13 +384,30 @@ document.getElementById('cg-lightbox').addEventListener('click', function(e) {
 });
 
 (function initCGLbSlider() {
-  var range = document.getElementById('cg-lb-range');
-  if (!range) return;
-  range.addEventListener('input', function() {
-    var pct = this.value;
-    document.getElementById('cg-lb-after').style.clipPath    = 'inset(0 ' + (100-pct) + '% 0 0)';
-    document.getElementById('cg-lb-divider').style.left = pct + '%';
+  var wrap    = document.getElementById('cg-lb-slider-wrap');
+  var after   = document.getElementById('cg-lb-after');
+  var divider = document.getElementById('cg-lb-divider');
+  if (!wrap) return;
+  var dragging = false;
+  function applyPct(clientX) {
+    var rect = wrap.getBoundingClientRect();
+    var pct  = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    if (after)   after.style.clipPath  = 'inset(0 ' + (100 - pct) + '% 0 0)';
+    if (divider) divider.style.left    = pct + '%';
+  }
+  wrap.addEventListener('pointerdown', function(e) {
+    e.preventDefault();
+    dragging = true;
+    wrap.setPointerCapture(e.pointerId);
+    applyPct(e.clientX);
   });
+  wrap.addEventListener('pointermove', function(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    applyPct(e.clientX);
+  });
+  wrap.addEventListener('pointerup',     function(e) { dragging = false; wrap.releasePointerCapture(e.pointerId); });
+  wrap.addEventListener('pointercancel', function()  { dragging = false; });
 })();
 function openDrawer() {
   document.getElementById('nav-drawer').classList.add('open');
@@ -722,6 +746,13 @@ function renderCGEditor() {
       '<div class="form-group"><label>Category</label><input type="text" id="cg-cat-' + i + '" value="' + (s.cat||'Color Grading') + '"></div>' +
       '<div class="form-group"><label>Title</label><input type="text" id="cg-title-' + i + '" value="' + (s.title||'') + '"></div>' +
       '</div>' +
+      '<div class="form-row">' +
+      '<div class="form-group"><label>📐 Image Layout</label>' +
+      '<select id="cg-orient-' + i + '" style="width:100%;padding:0.55rem 0.7rem;background:var(--dark3);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:0.78rem;border-radius:2px;">' +
+      '<option value="landscape"' + (s.orientation !== 'portrait' ? ' selected' : '') + '>🖼 Landscape (16:9) — horizontal shots</option>' +
+      '<option value="portrait"'  + (s.orientation === 'portrait' ? ' selected' : '') + '>📱 Portrait (9:16) — vertical / reel shots</option>' +
+      '</select></div>' +
+      '</div>' +
       '<div class="form-group"><label>Description</label><textarea id="cg-desc-' + i + '" rows="2">' + (s.desc||'') + '</textarea></div>' +
       '<div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="cg-tags-' + i + '" value="' + (s.tags||[]).join(', ') + '"></div>' +
       '</div>';
@@ -747,7 +778,7 @@ function removeCGShot(i) {
 
 function addColorGradingShot() {
   if (!DATA.colorGrading) DATA.colorGrading = [];
-  DATA.colorGrading.push({ cat:'Color Grading', title:'New Shot', desc:'', tags:['LUT','Grade'], beforeData:'', afterData:'' });
+  DATA.colorGrading.push({ cat:'Color Grading', title:'New Shot', desc:'', tags:['LUT','Grade'], orientation:'landscape', beforeData:'', afterData:'' });
   renderCGEditor();
   setTimeout(() => {
     const cards = document.querySelectorAll('#cg-editor .admin-card');
@@ -786,12 +817,13 @@ function applyChanges() {
   }));
   if (!DATA.colorGrading) DATA.colorGrading = [];
   DATA.colorGrading = DATA.colorGrading.map((s,i)=>({
-    cat:        get('cg-cat-'+i)   || 'Color Grading',
-    title:      get('cg-title-'+i) || 'Untitled Shot',
-    desc:       get('cg-desc-'+i)  || '',
-    tags:       get('cg-tags-'+i).split(',').map(t=>t.trim()).filter(Boolean),
-    beforeData: s.beforeData || '',
-    afterData:  s.afterData  || ''
+    cat:         get('cg-cat-'+i)   || 'Color Grading',
+    title:       get('cg-title-'+i) || 'Untitled Shot',
+    desc:        get('cg-desc-'+i)  || '',
+    tags:        get('cg-tags-'+i).split(',').map(t=>t.trim()).filter(Boolean),
+    orientation: get('cg-orient-'+i) || 'landscape',
+    beforeData:  s.beforeData || '',
+    afterData:   s.afterData  || ''
   }));
   DATA.skills = DATA.skills.map((_,i)=>({
     icon: get(`sk-icon-${i}`), title: get(`sk-title-${i}`),
