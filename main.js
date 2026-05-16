@@ -441,12 +441,11 @@ if (_pwdInput) _pwdInput.addEventListener('keydown', e => { if(e.key==='Enter') 
 
 function openAdmin() { populateAdmin(); document.getElementById('admin-panel').classList.add('open'); }
 function closeAdmin() { document.getElementById('admin-panel').classList.remove('open'); }
-function switchTab(name) {
+function switchTab(name, clickedEl) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-  var tabBtn = document.querySelector('.admin-tab[onclick*="switchTab(\'' + name + '\')"]') ||
-               document.querySelector('.admin-tab[onclick*=\'switchTab("' + name + '")\']');
+  var tabBtn = clickedEl || (typeof event !== 'undefined' && event && event.target) || null;
+  if (!tabBtn) tabBtn = document.querySelector('.admin-tab[onclick*="\'' + name + '\'"]') || document.querySelector('.admin-tab[onclick*=\'"' + name + '"\']');
   if (tabBtn) tabBtn.classList.add('active');
-  else if (typeof event !== 'undefined' && event && event.target) event.target.classList.add('active');
   document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
   var sec = document.getElementById('tab-' + name);
   if (sec) sec.classList.add('active');
@@ -1063,11 +1062,14 @@ function getGitHubSettings() {
 
 function showGhStatus(msg, color) {
   var el = document.getElementById('gh-status');
-  el.style.display = 'block';
-  el.style.background = color === '#e74c3c' ? 'rgba(192,57,43,0.1)' : 'rgba(46,204,113,0.08)';
-  el.style.border = '1px solid ' + color + '44';
-  el.style.color = color;
+  if (!el) return;
+  var bg = color === '#e74c3c' ? 'rgba(192,57,43,0.1)'
+         : color === '#2ecc71' ? 'rgba(46,204,113,0.08)'
+         : color === '#3498db' ? 'rgba(52,152,219,0.08)'
+         : 'rgba(243,156,18,0.08)';
+  el.style.cssText = 'display:block;background:' + bg + ';border:1px solid ' + color + '66;color:' + color + ';padding:0.8rem 1rem;border-radius:3px;font-family:var(--font-mono);font-size:0.73rem;line-height:1.7;margin-top:0.9rem;';
   el.innerHTML = msg;
+  setTimeout(function(){ el.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 120);
 }
 
 async function testGitHubConnection() {
@@ -1090,66 +1092,144 @@ async function testGitHubConnection() {
 }
 
 async function publishToGitHub() {
+  // ── 1. Make sure admin panel is open and status is visible ──
   var adminEl = document.getElementById('admin-panel');
   var pwdEl   = document.getElementById('pwd-prompt');
-
   if (adminEl) adminEl.classList.add('open');
   if (pwdEl)   pwdEl.classList.remove('open');
 
-  if (typeof switchTab === 'function') switchTab('publish');
+  // Switch to publish tab without relying on event object
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  var pubTab = document.querySelector('.admin-tab[onclick*="publish"]');
+  if (pubTab) pubTab.classList.add('active');
+  var pubSec = document.getElementById('tab-publish');
+  if (pubSec) pubSec.classList.add('active');
 
-  applyChanges();
+  // Force status bar visible immediately so user sees feedback
+  var statusEl = document.getElementById('gh-status');
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.style.background = 'rgba(243,156,18,0.1)';
+    statusEl.style.border = '1px solid #f39c1244';
+    statusEl.style.color = '#f39c12';
+    statusEl.innerHTML = '⏳ Starting publish — please wait…';
+    setTimeout(function(){ statusEl.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 150);
+  }
 
-  var s = getGitHubSettings();
-  if (!s.token) {
-    showGhStatus('⚠️ Enter your GitHub Personal Access Token below before publishing.', '#f39c12');
+  // ── 2. Read settings directly from the input fields ──
+  var ghUser  = (document.getElementById('gh-user')  ? document.getElementById('gh-user').value.trim()  : '') || 'hrs-editz';
+  var ghRepo  = (document.getElementById('gh-repo')  ? document.getElementById('gh-repo').value.trim()  : '') || 'Portfolio';
+  var ghFile  = (document.getElementById('gh-file')  ? document.getElementById('gh-file').value.trim()  : '') || 'index.html';
+  var ghToken = (document.getElementById('gh-token') ? document.getElementById('gh-token').value.trim() : '');
+
+  // Also try localStorage as fallback
+  if (!ghToken) {
+    try {
+      var stored = JSON.parse(localStorage.getItem('portfolio_gh_settings') || '{}');
+      if (stored.token) ghToken = stored.token;
+    } catch(e) {}
+  }
+
+  if (!ghToken) {
+    showGhStatus('⚠️ No GitHub token found. Enter your Personal Access Token in the field above and click 💾 Save Settings first.', '#f39c12');
     return;
   }
 
-  var publishBtns = document.querySelectorAll('[onclick="publishToGitHub()"]');
-  publishBtns.forEach(function(b) { b.disabled = true; b.style.opacity = '0.6'; b.style.cursor = 'not-allowed'; });
+  // ── 3. Disable publish buttons ──
+  var publishBtns = document.querySelectorAll('button[onclick="publishToGitHub()"], button[onclick*="publishToGitHub"]');
+  publishBtns.forEach(function(b) { b.disabled = true; b.style.opacity = '0.5'; });
 
-  var filePath = s.file || 'index.html';
-  var apiBase = 'https://api.github.com/repos/' + s.user + '/' + s.repo + '/contents/' + filePath;
+  var apiBase = 'https://api.github.com/repos/' + ghUser + '/' + ghRepo + '/contents/' + ghFile;
   var headers = {
-    'Authorization': 'token ' + s.token,
+    'Authorization': 'token ' + ghToken,
     'Accept': 'application/vnd.github.v3+json',
     'Content-Type': 'application/json'
   };
 
-  showGhStatus('⏳ Compressing and preparing your portfolio…', '#f39c12');
-
   try {
-    var compressed = await compressDataImages(DATA);
+    // ── 4. Save current form values into DATA ──
+    showGhStatus('⏳ Saving changes…', '#f39c12');
+    try { applyChanges(); } catch(e) { console.warn('applyChanges error:', e); }
 
-    var adminOpenBefore = adminEl && adminEl.classList.contains('open');
-    if (adminEl) adminEl.classList.remove('open');
-    if (pwdEl)   pwdEl.classList.remove('open');
+    // ── 5. Compress images ──
+    showGhStatus('⏳ Compressing images…', '#f39c12');
+    var compressed;
+    try {
+      compressed = await compressDataImages(DATA);
+    } catch(e) {
+      compressed = JSON.parse(JSON.stringify(DATA)); // fallback: uncompressed clone
+    }
 
-    var html = buildExportHTML(compressed);
-
-    if (adminEl && adminOpenBefore) adminEl.classList.add('open');
-
-    var encoded = btoa(unescape(encodeURIComponent(html)));
-
-    showGhStatus('⏳ Connecting to GitHub…', '#f39c12');
-    var getResp = await fetch(apiBase, { headers: headers });
-    var sha = null;
-    if (getResp.ok) {
-      var fileData = await getResp.json();
-      sha = fileData.sha;
-    } else if (getResp.status !== 404) {
-      var errData = await getResp.json();
-      showGhStatus('❌ Could not read file: ' + (errData.message || getResp.status), '#e74c3c');
-      publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; b.style.cursor = ''; });
+    // ── 6. Build the HTML export ──
+    showGhStatus('⏳ Building HTML…', '#f39c12');
+    var html;
+    try {
+      // Temporarily hide admin panel so it exports cleanly
+      if (adminEl) adminEl.classList.remove('open');
+      html = buildExportHTML(compressed);
+      if (adminEl) adminEl.classList.add('open');
+    } catch(e) {
+      if (adminEl) adminEl.classList.add('open');
+      showGhStatus('❌ Failed to build HTML: ' + e.message, '#e74c3c');
+      publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
       return;
     }
 
+    if (!html || html.length < 100) {
+      showGhStatus('❌ HTML export came out empty. Please try again.', '#e74c3c');
+      publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+      return;
+    }
+
+    // ── 7. Base64 encode safely ──
+    showGhStatus('⏳ Encoding for GitHub…', '#f39c12');
+    var encoded;
+    try {
+      // Safe UTF-8 → base64 that handles all characters
+      var bytes = new TextEncoder().encode(html);
+      var binary = '';
+      for (var i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      encoded = btoa(binary);
+    } catch(e) {
+      try { encoded = btoa(unescape(encodeURIComponent(html))); }
+      catch(e2) {
+        showGhStatus('❌ Encoding failed: ' + e2.message, '#e74c3c');
+        publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+        return;
+      }
+    }
+
+    // ── 8. Get current file SHA (needed for update) ──
+    showGhStatus('⏳ Connecting to GitHub…', '#f39c12');
+    var sha = null;
+    try {
+      var getResp = await fetch(apiBase, { headers: headers });
+      if (getResp.ok) {
+        var fileData = await getResp.json();
+        sha = fileData.sha;
+      } else if (getResp.status === 401) {
+        showGhStatus('❌ Authentication failed — your GitHub token is invalid or expired. <a href="https://github.com/settings/tokens/new?scopes=repo&description=Portfolio+Publisher" target="_blank" style="color:var(--accent);">Create a new token ↗</a>', '#e74c3c');
+        publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+        return;
+      } else if (getResp.status === 404) {
+        // File doesn't exist yet — will create it fresh (sha stays null)
+        sha = null;
+      } else {
+        var errTxt = await getResp.text();
+        showGhStatus('❌ GitHub read error (' + getResp.status + '): ' + errTxt, '#e74c3c');
+        publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+        return;
+      }
+    } catch(e) {
+      showGhStatus('❌ Network error reaching GitHub: ' + e.message, '#e74c3c');
+      publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+      return;
+    }
+
+    // ── 9. Push to GitHub ──
     showGhStatus('⏳ Uploading to GitHub — please wait…', '#f39c12');
-    var body = {
-      message: '🎬 Portfolio update via admin panel',
-      content: encoded
-    };
+    var body = { message: '🎬 Portfolio update via admin panel', content: encoded };
     if (sha) body.sha = sha;
 
     var putResp = await fetch(apiBase, {
@@ -1157,26 +1237,35 @@ async function publishToGitHub() {
       headers: headers,
       body: JSON.stringify(body)
     });
-    var putData = await putResp.json();
+
+    var putData;
+    try { putData = await putResp.json(); } catch(e) { putData = {}; }
 
     if (putResp.ok) {
-      var liveUrl = 'https://' + s.user + '.github.io/' + s.repo + '/';
+      var liveUrl = 'https://' + ghUser + '.github.io/' + ghRepo + '/';
       showGhStatus(
         '✅ <strong>Published successfully!</strong> Your site is updating now.<br>' +
         '🌐 Live in ~60 seconds: <a href="' + liveUrl + '" target="_blank" style="color:var(--accent);">' + liveUrl + ' ↗</a><br>' +
-        '<span style="color:var(--muted);font-size:0.68rem;">Videos synced via Google Drive links — no re-upload needed.</span>',
+        '<span style="color:var(--muted);font-size:0.68rem;">Changes committed to GitHub — GitHub Pages will rebuild automatically.</span>',
         '#2ecc71'
       );
-      var statusEl = document.getElementById('gh-status');
-      if (statusEl) setTimeout(function(){ statusEl.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 100);
+      // Save settings to localStorage after successful publish
+      try {
+        localStorage.setItem('portfolio_gh_settings', JSON.stringify({ user: ghUser, repo: ghRepo, file: ghFile, token: ghToken }));
+      } catch(e) {}
     } else {
-      showGhStatus('❌ Publish failed: ' + (putData.message || JSON.stringify(putData)), '#e74c3c');
+      var errMsg = putData.message || JSON.stringify(putData);
+      if (putResp.status === 422) errMsg = 'SHA mismatch — file was changed externally. Please try again.';
+      if (putResp.status === 401) errMsg = 'Token invalid or missing "repo" permission. <a href="https://github.com/settings/tokens/new?scopes=repo&description=Portfolio+Publisher" target="_blank" style="color:var(--accent);">Create new token ↗</a>';
+      showGhStatus('❌ Publish failed (' + putResp.status + '): ' + errMsg, '#e74c3c');
     }
+
   } catch(e) {
-    showGhStatus('❌ Error: ' + e.message, '#e74c3c');
+    showGhStatus('❌ Unexpected error: ' + e.message + '<br><small>Open browser console (F12) for details.</small>', '#e74c3c');
+    console.error('publishToGitHub error:', e);
   }
 
-  publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; b.style.cursor = ''; });
+  publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
 }
 
 async function autoSyncToGitHub() {
