@@ -443,9 +443,13 @@ function openAdmin() { populateAdmin(); document.getElementById('admin-panel').c
 function closeAdmin() { document.getElementById('admin-panel').classList.remove('open'); }
 function switchTab(name) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
+  var tabBtn = document.querySelector('.admin-tab[onclick*="switchTab(\'' + name + '\')"]') ||
+               document.querySelector('.admin-tab[onclick*=\'switchTab("' + name + '")\']');
+  if (tabBtn) tabBtn.classList.add('active');
+  else if (typeof event !== 'undefined' && event && event.target) event.target.classList.add('active');
   document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
+  var sec = document.getElementById('tab-' + name);
+  if (sec) sec.classList.add('active');
 }
 function set(id,val) { const el=document.getElementById(id); if(el) el.value=val; }
 function get(id) { const el=document.getElementById(id); return el ? el.value.trim() : ''; }
