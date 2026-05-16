@@ -209,31 +209,32 @@ render();
 
 function extractDriveId(url) {
   if (!url) return '';
-  let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})/);
+  // Handle full share/view URLs: /file/d/{id}/view or /file/d/{id}/preview
+  var m = url.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})/);
   if (m) return m[1];
+  // Handle export/open URLs: ?id={id}
   m = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
   if (m) return m[1];
+  // Handle raw ID pasted directly
   if (/^[a-zA-Z0-9_-]{20,}$/.test(url.trim())) return url.trim();
   return '';
 }
 
 function driveEmbedUrl(id) {
-  return id ? 'https://drive.google.com/file/d/' + id + '/preview?autoplay=0' : '';
+  // Use /preview — works for both video and non-video files on Drive
+  return id ? 'https://drive.google.com/file/d/' + id + '/preview' : '';
 }
 
 function buildDriveEmbed(driveUrl, isShort) {
   var id = extractDriveId(driveUrl);
   if (!id) return '';
   var embedUrl = driveEmbedUrl(id);
-  var style = 'width:100%;height:100%;border:none;display:block;';
-  return '<div style="position:relative;width:100%;height:100%;">' +
-    '<iframe src="' + embedUrl + '" ' +
-    'style="' + style + '" ' +
-    'allow="autoplay; fullscreen" ' +
-    'allowfullscreen>' +
-    '</iframe>' +
-    '<div style="position:absolute;top:0;right:0;width:70px;height:55px;z-index:10;background:#000;pointer-events:all;cursor:default;"></div>' +
-    '</div>';
+  return '<iframe src="' + embedUrl + '" ' +
+    'style="width:100%;height:100%;border:none;display:block;" ' +
+    'allow="autoplay; fullscreen; picture-in-picture" ' +
+    'allowfullscreen ' +
+    'loading="lazy">' +
+    '</iframe>';
 }
 
 var _lbIdx = 0;
