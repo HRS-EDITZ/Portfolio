@@ -434,7 +434,7 @@ function openPwd() {
 }
 function closePwd() { document.getElementById('pwd-prompt').classList.remove('open'); }
 function checkPwd() {
-  if (document.getElementById('pwd-input').value === ADMIN_PASSWORD) { closePwd(); openAdmin(); }
+  if (document.getElementById('pwd-input').value === ADMIN_PASSWORD) { closePwd(); (window.openAdmin || openAdmin)(); }
   else { document.getElementById('pwd-err').style.display = 'block'; }
 }
 const _pwdInput = document.getElementById('pwd-input');
@@ -1350,7 +1350,7 @@ async function autoFetchFromGitHub() {
 }
 
 (function() {
-  var origOpen = window.openAdmin;
+  var origOpen = window.openAdmin || openAdmin;
   window.openAdmin = function() {
     origOpen();
     loadGitHubSettings();
