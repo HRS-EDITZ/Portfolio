@@ -10,8 +10,66 @@
 
   <link rel="stylesheet" href="styles.css">
 <style>
-/* ── Disable custom cursor — use normal OS cursor ── */
-.cursor, .cursor-dot, .cursor-ring, #cursor-dot, #cursor-ring { display: none !important; }
+/* ══════════════════════════════════════════════
+   ANIMATED CUSTOM CURSOR
+══════════════════════════════════════════════ */
+*, *::before, *::after { cursor: none !important; }
+
+#cursor-dot {
+  position: fixed;
+  top: 0; left: 0;
+  width: 10px; height: 10px;
+  background: #e8c547;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 999999;
+  transform: translate(-50%, -50%);
+  transition: width 0.18s ease, height 0.18s ease, background 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 0 8px rgba(232,197,71,0.9), 0 0 18px rgba(232,197,71,0.5);
+}
+
+#cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  width: 36px; height: 36px;
+  border: 2px solid rgba(232,197,71,0.7);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 999998;
+  transform: translate(-50%, -50%);
+  transition: width 0.28s cubic-bezier(.23,1,.32,1),
+              height 0.28s cubic-bezier(.23,1,.32,1),
+              border-color 0.28s ease,
+              box-shadow 0.28s ease,
+              opacity 0.28s ease;
+}
+
+/* Hover state — ring expands, dot shrinks */
+body.cursor-hover #cursor-dot {
+  width: 6px; height: 6px;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 4px rgba(232,197,71,0.6);
+}
+body.cursor-hover #cursor-ring {
+  width: 52px; height: 52px;
+  border-color: rgba(232,197,71,1);
+  box-shadow: 0 0 14px rgba(232,197,71,0.3);
+}
+
+/* Click state */
+body.cursor-click #cursor-dot {
+  width: 14px; height: 14px;
+  background: #fff;
+  box-shadow: 0 0 18px rgba(255,255,255,0.95);
+}
+body.cursor-click #cursor-ring {
+  width: 22px; height: 22px;
+  border-color: #e8c547;
+}
+
+/* Hide when cursor leaves window */
+body.cursor-hidden #cursor-dot,
+body.cursor-hidden #cursor-ring { opacity: 0; }
 
 /* ============================================================
    COLOR GRADING SECTION — matches existing section layout
@@ -25,9 +83,10 @@
 
 .cg-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 2rem;
   margin-top: 2.5rem;
+  align-items: start;
 }
 
 /* Card */
@@ -49,14 +108,11 @@
 .cg-slider-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 16/9;
+  aspect-ratio: 16/9; /* default; overridden inline for portrait */
   overflow: hidden;
   background: #0a0a0a;
   user-select: none;
-}
-.cg-slider-wrap[data-orient="portrait"] {
-  aspect-ratio: 9/16;
-  max-height: 520px;
+  cursor: ew-resize;
 }
 .cg-img-before, .cg-img-after {
   position: absolute;
@@ -169,93 +225,22 @@
 .cg-lightbox-inner {
   position: relative;
   width: min(92vw, 1000px);
-  max-height: 90vh;
+  max-height: 92vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
+  overflow-y: auto;
 }
 .cg-lb-slider-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 16/9;
+  aspect-ratio: 16/9; /* overridden by JS for portrait shots */
   overflow: hidden;
   background: #000;
   border-radius: 4px;
   user-select: none;
-}
-.cg-lb-slider-wrap[data-orient="portrait"] {
-  aspect-ratio: 9/16;
-  width: auto;
-  height: min(80vh, 600px);
-}
-
-/* Fullscreen single image overlay */
-#cg-fs-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  background: rgba(0,0,0,0.97);
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 1rem;
-}
-#cg-fs-overlay.open { display: flex; }
-#cg-fs-overlay img {
-  max-width: 96vw;
-  max-height: 90vh;
-  object-fit: contain;
-  border-radius: 4px;
-  box-shadow: 0 0 60px rgba(0,0,0,0.8);
-}
-#cg-fs-close {
-  position: fixed;
-  top: 1.2rem;
-  right: 1.4rem;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
-  color: #fff;
-  font-size: 1.1rem;
-  width: 38px; height: 38px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  z-index: 10001;
-  transition: background 0.2s;
-}
-#cg-fs-close:hover { background: rgba(232,197,71,0.25); }
-#cg-fs-tabs {
-  display: flex;
-  gap: 0.6rem;
-}
-.cg-fs-tab {
-  font-family: var(--font-mono, monospace);
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  padding: 0.4rem 1rem;
-  border-radius: 2px;
-  cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.05);
-  color: #aaa;
-  transition: all 0.18s;
-}
-.cg-fs-tab.active {
-  background: rgba(232,197,71,0.18);
-  border-color: rgba(232,197,71,0.5);
-  color: var(--accent, #e8c547);
-}
-#cg-fs-label {
-  font-family: var(--font-mono, monospace);
-  font-size: 0.7rem;
-  color: #555;
-  letter-spacing: 0.08em;
-}
-/* Prevent portrait cards from stretching grid too much */
-.cg-grid .cg-card .cg-slider-wrap[data-orient="portrait"] {
-  max-height: 420px;
+  transition: aspect-ratio 0.2s;
 }
 .cg-lb-img-before, .cg-lb-img-after {
   position: absolute;
@@ -323,6 +308,29 @@
   color: var(--accent);
 }
 
+/* Fullscreen hint icon on card slider */
+.cg-fullscreen-hint {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 28px; height: 28px;
+  background: rgba(0,0,0,0.55);
+  color: rgba(232,197,71,0.85);
+  border-radius: 3px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s;
+  pointer-events: all;
+}
+.cg-slider-wrap:hover .cg-fullscreen-hint {
+  opacity: 1;
+}
+
 /* Admin upload area for images */
 .cg-upload-area {
   display: flex;
@@ -358,6 +366,10 @@
 }
 </style>
 <body>
+
+<!-- ANIMATED CURSOR ELEMENTS -->
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
 
 <!-- PORTFOLIO INTRO — FILM COUNTDOWN EDITION -->
 <div id="portfolio-intro" title="Click to skip">
@@ -670,7 +682,92 @@
 </div>
 
 <!-- Hidden edit trigger -->
-<span id="edit-trigger" style="position:fixed;bottom:1.2rem;right:1.2rem;width:22px;height:22px;border-radius:50%;background:rgba(232,197,71,0.15);border:1px solid rgba(232,197,71,0.3);cursor:pointer;z-index:500;" title="Admin (triple-click)"></span>
+<span id="edit-trigger" style="position:fixed;bottom:1.2rem;right:1.2rem;width:14px;height:14px;border-radius:50%;background:rgba(232,197,71,0.3);border:1.5px solid rgba(232,197,71,0.6);z-index:999999;pointer-events:all !important;cursor:pointer !important;transition:background 0.2s,box-shadow 0.2s;" title="Admin (triple-click)" onmouseover="this.style.background='rgba(232,197,71,0.65)';this.style.boxShadow='0 0 10px rgba(232,197,71,0.7)'" onmouseout="this.style.background='rgba(232,197,71,0.3)';this.style.boxShadow='none'"></span>
+<script>
+(function(){
+  var _clicks=0, _timer;
+  var _dot = document.getElementById('edit-trigger');
+  if(_dot){
+    _dot.addEventListener('click', function(e){
+      e.stopPropagation();
+      _clicks++;
+      clearTimeout(_timer);
+      _timer = setTimeout(function(){ _clicks=0; }, 2000);
+      if(_clicks >= 3){
+        _clicks = 0;
+        if(typeof openPwd === 'function') openPwd();
+        else if(typeof openAdmin === 'function') openAdmin();
+      }
+    }, true);
+  }
+})();
+</script>
+
+<!-- ANIMATED CURSOR SCRIPT -->
+<script>
+(function() {
+  var dot  = document.getElementById('cursor-dot');
+  var ring = document.getElementById('cursor-ring');
+  if (!dot || !ring) return;
+
+  var mouseX = window.innerWidth / 2;
+  var mouseY = window.innerHeight / 2;
+  var ringX  = mouseX;
+  var ringY  = mouseY;
+  var rafId;
+
+  /* Smooth ring follow with lerp */
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function animateRing() {
+    ringX = lerp(ringX, mouseX, 0.12);
+    ringY = lerp(ringY, mouseY, 0.12);
+    ring.style.left = ringX + 'px';
+    ring.style.top  = ringY + 'px';
+    rafId = requestAnimationFrame(animateRing);
+  }
+  animateRing();
+
+  /* Dot follows instantly */
+  document.addEventListener('mousemove', function(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    dot.style.left = e.clientX + 'px';
+    dot.style.top  = e.clientY + 'px';
+    document.body.classList.remove('cursor-hidden');
+  });
+
+  /* Hover detection on interactive elements */
+  var hoverSel = 'a, button, [onclick], input, textarea, select, label, .video-card, .cg-card, .project-card, .skill-card, .nav-cta, .btn-primary, .btn-secondary, .admin-tab, .admin-btn-remove, .admin-btn-add, .admin-save, .admin-export, #scroll-top-btn, .cg-range, .cg-lb-range';
+
+  document.addEventListener('mouseover', function(e) {
+    if (e.target.closest(hoverSel)) {
+      document.body.classList.add('cursor-hover');
+    }
+  });
+  document.addEventListener('mouseout', function(e) {
+    if (e.target.closest(hoverSel)) {
+      document.body.classList.remove('cursor-hover');
+    }
+  });
+
+  /* Click flash */
+  document.addEventListener('mousedown', function() {
+    document.body.classList.add('cursor-click');
+  });
+  document.addEventListener('mouseup', function() {
+    document.body.classList.remove('cursor-click');
+  });
+
+  /* Hide when leaving window */
+  document.addEventListener('mouseleave', function() {
+    document.body.classList.add('cursor-hidden');
+  });
+  document.addEventListener('mouseenter', function() {
+    document.body.classList.remove('cursor-hidden');
+  });
+})();
+</script>
 
 <!-- ABOUT -->
 <section id="about">
@@ -772,17 +869,6 @@
     </div>
     <div class="video-lightbox-title" id="cg-lightbox-title"></div>
   </div>
-</div>
-
-<!-- COLOR GRADING FULLSCREEN IMAGE OVERLAY -->
-<div id="cg-fs-overlay">
-  <button id="cg-fs-close" onclick="closeCGFullscreen()">✕</button>
-  <div id="cg-fs-tabs">
-    <button class="cg-fs-tab active" id="cg-fs-before-btn" onclick="cgFsShowBefore()">BEFORE</button>
-    <button class="cg-fs-tab" id="cg-fs-after-btn" onclick="cgFsShowAfter()">AFTER</button>
-  </div>
-  <img id="cg-fs-img" src="" alt="Color grading fullscreen">
-  <div id="cg-fs-label"></div>
 </div>
 
 <!-- COLOR GRADING SECTION -->
@@ -1246,10 +1332,10 @@
         <span style="color:var(--muted);">Your token is stored only in this browser (localStorage) and never exported to the HTML file.</span>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>GitHub Username</label><input type="text" id="gh-user" placeholder="hrs-editz" autocomplete="off" style="opacity:0.6;" readonly></div>
-        <div class="form-group"><label>Repository Name</label><input type="text" id="gh-repo" placeholder="Portfolio" autocomplete="off" style="opacity:0.6;" readonly></div>
+        <div class="form-group"><label>GitHub Username</label><input type="text" id="gh-user" value="hrs-editz" autocomplete="off"></div>
+        <div class="form-group"><label>Repository Name</label><input type="text" id="gh-repo" value="Portfolio" autocomplete="off"></div>
       </div>
-      <div class="form-group"><label>File Path in Repo</label><input type="text" id="gh-file" placeholder="index.html" autocomplete="off" style="opacity:0.6;" readonly></div>
+      <div class="form-group"><label>File Path in Repo</label><input type="text" id="gh-file" value="index.html" autocomplete="off"></div>
       <div class="form-group">
         <label>Personal Access Token (PAT) <span style="color:var(--muted);font-size:0.65rem;">— <a href="https://github.com/settings/tokens/new?scopes=repo&amp;description=Portfolio+Publisher" target="_blank" style="color:var(--accent);">Create token ↗</a> (needs repo scope)</span></label>
         <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
