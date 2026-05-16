@@ -131,7 +131,10 @@ function render() {
           '<div class="cg-img-before" style="background-image:url(\'' + (hasBefore ? s.beforeData : s.afterData) + '\')"></div>' +
           '<div class="cg-img-after"  id="cg-after-' + i + '" style="background-image:url(\'' + (hasAfter  ? s.afterData  : s.beforeData) + '\')"></div>' +
           '<input type="range" class="cg-range" min="0" max="100" value="50" ' +
-            'oninput="moveCGSlider(this,' + i + ')" onclick="event.stopPropagation()">' +
+            'oninput="moveCGSlider(this,' + i + ')" ' +
+            'onclick="event.stopPropagation()" ' +
+            'ontouchstart="event.stopPropagation()" ' +
+            'ontouchmove="event.stopPropagation()">' +
           '<div class="cg-divider" id="cg-div-' + i + '"></div>' +
           '<div class="cg-label cg-label-before">BEFORE</div>' +
           '<div class="cg-label cg-label-after">AFTER</div>' +
@@ -331,8 +334,37 @@ function openCGLightbox(i) {
   document.getElementById('cg-lb-divider').style.left = '50%';
   document.getElementById('cg-lb-range').value = 50;
   document.getElementById('cg-lightbox-title').textContent = s.title || '';
+
+  // Apply portrait/landscape mode to lightbox
+  var inner = document.getElementById('cg-lightbox-inner');
+  var wrap  = document.getElementById('cg-lb-slider-wrap');
+  if (window._cgViewMode === 'portrait') {
+    if (inner) inner.classList.add('portrait-mode');
+    if (wrap)  wrap.classList.add('portrait-mode');
+  } else {
+    if (inner) inner.classList.remove('portrait-mode');
+    if (wrap)  wrap.classList.remove('portrait-mode');
+  }
+
   document.getElementById('cg-lightbox').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+function setCGView(mode) {
+  window._cgViewMode = mode;
+  var grid = document.getElementById('cg-container');
+  var btnL = document.getElementById('cg-btn-landscape');
+  var btnP = document.getElementById('cg-btn-portrait');
+  if (!grid) return;
+  if (mode === 'portrait') {
+    grid.classList.add('portrait-mode');
+    if (btnL) { btnL.classList.remove('active'); }
+    if (btnP) { btnP.classList.add('active'); }
+  } else {
+    grid.classList.remove('portrait-mode');
+    if (btnL) { btnL.classList.add('active'); }
+    if (btnP) { btnP.classList.remove('active'); }
+  }
 }
 
 function closeCGLightbox() {
@@ -784,7 +816,6 @@ function applyChanges() {
 
   render();
   saveToLocalStorage();
-  closeAdmin();
   const btn = document.querySelector('.admin-save');
   btn.textContent = '⏳ Syncing…'; btn.disabled = true;
   autoSyncToGitHub().then(() => {
