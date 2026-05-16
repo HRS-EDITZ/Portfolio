@@ -231,16 +231,30 @@ function driveEmbedUrl(id) {
   return id ? 'https://drive.google.com/file/d/' + id + '/preview?autoplay=0' : '';
 }
 
+function driveStreamUrl(id) {
+  /* This URL streams the file publicly — works for any viewer, no login needed,
+     as long as the file is shared as "Anyone with the link". */
+  return id ? 'https://drive.google.com/uc?export=download&id=' + id + '&confirm=t' : '';
+}
+
 function buildDriveEmbed(driveUrl, isShort) {
   var id = extractDriveId(driveUrl);
   if (!id) return '';
-  var embedUrl = driveEmbedUrl(id);
-  var style = 'width:100%;height:100%;border:none;display:block;';
-  return '<div style="position:relative;width:100%;height:100%;">' +
-    '<iframe src="' + embedUrl + '" ' +
-    'style="' + style + '" ' +
-    'allowfullscreen ' +
-    'allow="autoplay; fullscreen" ' +
+  var streamUrl = driveStreamUrl(id);
+  var previewUrl = driveEmbedUrl(id);
+
+  /* Use a native <video> element with the stream URL so ALL viewers can play
+     without being logged in. Falls back to iframe if video tag fails. */
+  return '<div style="position:relative;width:100%;height:100%;background:#000;">' +
+    '<video controls playsinline preload="metadata" ' +
+    'style="width:100%;height:100%;display:block;outline:none;" ' +
+    'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\';">' +
+      '<source src="' + streamUrl + '" type="video/mp4">' +
+    '</video>' +
+    /* Fallback iframe shown only if video tag fails */
+    '<iframe src="' + previewUrl + '" ' +
+    'style="width:100%;height:100%;border:none;display:none;" ' +
+    'allowfullscreen allow="autoplay; fullscreen" ' +
     'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms">' +
     '</iframe>' +
     '</div>';
