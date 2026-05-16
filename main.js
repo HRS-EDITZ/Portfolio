@@ -126,25 +126,21 @@ function render() {
             '<div class="cg-info"><div class="cg-shot-cat">' + (s.cat||'Color Grading') + '</div>' +
             '<div class="cg-shot-title">' + (s.title||'Untitled Shot') + '</div></div></div>';
         }
-        const orient = s.orientation === 'portrait' ? 'portrait' : 'landscape';
-        return '<div class="cg-card" id="cg-card-' + i + '">' +
-          '<div class="cg-slider-wrap" id="cg-card-wrap-' + i + '" data-orient="' + orient + '" ' +
-            'onclick="if(!_cgDragging){openCGFullscreen(' + i + ')}" style="cursor:zoom-in;">' +
+        return '<div class="cg-card" onclick="openCGLightbox(' + i + ')">' +
+          '<div class="cg-slider-wrap" id="cg-card-wrap-' + i + '">' +
           '<div class="cg-img-before" style="background-image:url(\'' + (hasBefore ? s.beforeData : s.afterData) + '\')"></div>' +
           '<div class="cg-img-after"  id="cg-after-' + i + '" style="background-image:url(\'' + (hasAfter  ? s.afterData  : s.beforeData) + '\')"></div>' +
           '<input type="range" class="cg-range" min="0" max="100" value="50" ' +
-            'oninput="moveCGSlider(this,' + i + ')" ' +
-            'onmousedown="event.stopPropagation();_cgDragging=true" ontouchstart="event.stopPropagation();_cgDragging=true">' +
+            'oninput="moveCGSlider(this,' + i + ')" onclick="event.stopPropagation()">' +
           '<div class="cg-divider" id="cg-div-' + i + '"></div>' +
           '<div class="cg-label cg-label-before">BEFORE</div>' +
           '<div class="cg-label cg-label-after">AFTER</div>' +
           '</div>' +
-          '<div class="cg-info" onclick="openCGLightbox(' + i + ')" style="cursor:pointer;">' +
+          '<div class="cg-info">' +
           '<div class="cg-shot-cat">' + (s.cat||'Color Grading') + '</div>' +
           '<div class="cg-shot-title">' + (s.title||'Untitled Shot') + '</div>' +
           (s.desc ? '<div class="cg-shot-desc">' + s.desc + '</div>' : '') +
           '<div class="cg-tags">' + (s.tags||[]).map(t => '<span class="cg-tag">' + t + '</span>').join('') + '</div>' +
-          '<div style="margin-top:0.6rem;font-family:var(--font-mono);font-size:0.62rem;color:var(--accent);letter-spacing:0.06em;opacity:0.7;">🔍 Click info to compare · 🖼 Click image to fullscreen</div>' +
           '</div></div>';
       }).join('');
   setHTML('cg-container', cgHTML);
@@ -311,7 +307,7 @@ document.getElementById('video-lightbox').addEventListener('click', function(e) 
   if (e.target === this) closeLightbox();
 });
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') { closeLightbox(); closeCGLightbox(); closeCGFullscreen(); }
+  if (e.key === 'Escape') { closeLightbox(); closeCGLightbox(); }
 });
 /* ═══════════════════════════════════════════════════════
    COLOR GRADING — card slider + lightbox
@@ -324,18 +320,11 @@ function moveCGSlider(input, i) {
   if (divEl)   divEl.style.left = pct + '%';
 }
 
-var _cgDragging = false;
-document.addEventListener('mouseup',  function() { _cgDragging = false; });
-document.addEventListener('touchend', function() { setTimeout(function(){_cgDragging=false;},100); });
-
 function openCGLightbox(i) {
   var s = (DATA.colorGrading || [])[i];
   if (!s) return;
   var hasBefore = s.beforeData && s.beforeData.length > 50;
   var hasAfter  = s.afterData  && s.afterData.length  > 50;
-  var orient = s.orientation === 'portrait' ? 'portrait' : 'landscape';
-  var wrap = document.getElementById('cg-lb-slider-wrap');
-  if (wrap) wrap.setAttribute('data-orient', orient);
   document.getElementById('cg-lb-before').style.backgroundImage = 'url(\'' + (hasBefore ? s.beforeData : '') + '\')';
   document.getElementById('cg-lb-after').style.backgroundImage  = 'url(\'' + (hasAfter  ? s.afterData  : '') + '\')';
   document.getElementById('cg-lb-after').style.clipPath = 'inset(0 50% 0 0)';
@@ -345,61 +334,6 @@ function openCGLightbox(i) {
   document.getElementById('cg-lightbox').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
-
-var _cgFsData = null;
-function openCGFullscreen(i) {
-  var s = (DATA.colorGrading || [])[i];
-  if (!s) return;
-  var hasBefore = s.beforeData && s.beforeData.length > 50;
-  var hasAfter  = s.afterData  && s.afterData.length  > 50;
-  if (!hasBefore && !hasAfter) return;
-  _cgFsData = { before: hasBefore ? s.beforeData : '', after: hasAfter ? s.afterData : '', title: s.title || '' };
-  var img = document.getElementById('cg-fs-img');
-  var label = document.getElementById('cg-fs-label');
-  var beforeBtn = document.getElementById('cg-fs-before-btn');
-  var afterBtn  = document.getElementById('cg-fs-after-btn');
-  // Show after by default (the graded shot)
-  if (hasAfter) {
-    img.src = _cgFsData.after;
-    afterBtn.classList.add('active');
-    beforeBtn.classList.remove('active');
-    label.textContent = 'AFTER — ' + _cgFsData.title;
-  } else {
-    img.src = _cgFsData.before;
-    beforeBtn.classList.add('active');
-    afterBtn.classList.remove('active');
-    label.textContent = 'BEFORE — ' + _cgFsData.title;
-  }
-  if (!hasBefore || !hasAfter) {
-    document.getElementById('cg-fs-tabs').style.display = 'none';
-  } else {
-    document.getElementById('cg-fs-tabs').style.display = 'flex';
-  }
-  document.getElementById('cg-fs-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeCGFullscreen() {
-  document.getElementById('cg-fs-overlay').classList.remove('open');
-  document.getElementById('cg-fs-img').src = '';
-  document.body.style.overflow = '';
-}
-function cgFsShowBefore() {
-  if (!_cgFsData || !_cgFsData.before) return;
-  document.getElementById('cg-fs-img').src = _cgFsData.before;
-  document.getElementById('cg-fs-before-btn').classList.add('active');
-  document.getElementById('cg-fs-after-btn').classList.remove('active');
-  document.getElementById('cg-fs-label').textContent = 'BEFORE — ' + _cgFsData.title;
-}
-function cgFsShowAfter() {
-  if (!_cgFsData || !_cgFsData.after) return;
-  document.getElementById('cg-fs-img').src = _cgFsData.after;
-  document.getElementById('cg-fs-after-btn').classList.add('active');
-  document.getElementById('cg-fs-before-btn').classList.remove('active');
-  document.getElementById('cg-fs-label').textContent = 'AFTER — ' + _cgFsData.title;
-}
-document.getElementById('cg-fs-overlay').addEventListener('click', function(e) {
-  if (e.target === this || e.target === document.getElementById('cg-fs-img')) closeCGFullscreen();
-});
 
 function closeCGLightbox() {
   document.getElementById('cg-lightbox').classList.remove('open');
@@ -507,11 +441,14 @@ if (_pwdInput) _pwdInput.addEventListener('keydown', e => { if(e.key==='Enter') 
 
 function openAdmin() { populateAdmin(); document.getElementById('admin-panel').classList.add('open'); }
 function closeAdmin() { document.getElementById('admin-panel').classList.remove('open'); }
-function switchTab(name) {
+function switchTab(name, clickedEl) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
+  var tabBtn = clickedEl || (typeof event !== 'undefined' && event && event.target) || null;
+  if (!tabBtn) tabBtn = document.querySelector('.admin-tab[onclick*="\'' + name + '\'"]') || document.querySelector('.admin-tab[onclick*=\'"' + name + '"\']');
+  if (tabBtn) tabBtn.classList.add('active');
   document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
+  var sec = document.getElementById('tab-' + name);
+  if (sec) sec.classList.add('active');
 }
 function set(id,val) { const el=document.getElementById(id); if(el) el.value=val; }
 function get(id) { const el=document.getElementById(id); return el ? el.value.trim() : ''; }
@@ -753,15 +690,8 @@ function renderCGEditor() {
       '<div class="form-group"><label>Category</label><input type="text" id="cg-cat-' + i + '" value="' + (s.cat||'Color Grading') + '"></div>' +
       '<div class="form-group"><label>Title</label><input type="text" id="cg-title-' + i + '" value="' + (s.title||'') + '"></div>' +
       '</div>' +
-      '<div class="form-row">' +
-      '<div class="form-group"><label>📐 Photo Orientation</label>' +
-      '<select id="cg-orient-' + i + '" style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:2px;padding:0.8rem 1rem;color:var(--text);font-family:var(--font-body);font-size:0.88rem;outline:none;">' +
-      '<option value="landscape"' + ((!s.orientation || s.orientation === 'landscape') ? ' selected' : '') + '>🖼 Landscape (16:9)</option>' +
-      '<option value="portrait"' + (s.orientation === 'portrait' ? ' selected' : '') + '>📱 Portrait (9:16)</option>' +
-      '</select></div>' +
-      '<div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="cg-tags-' + i + '" value="' + (s.tags||[]).join(', ') + '"></div>' +
-      '</div>' +
       '<div class="form-group"><label>Description</label><textarea id="cg-desc-' + i + '" rows="2">' + (s.desc||'') + '</textarea></div>' +
+      '<div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="cg-tags-' + i + '" value="' + (s.tags||[]).join(', ') + '"></div>' +
       '</div>';
   });
 }
@@ -785,7 +715,7 @@ function removeCGShot(i) {
 
 function addColorGradingShot() {
   if (!DATA.colorGrading) DATA.colorGrading = [];
-  DATA.colorGrading.push({ cat:'Color Grading', title:'New Shot', desc:'', tags:['LUT','Grade'], orientation:'landscape', beforeData:'', afterData:'' });
+  DATA.colorGrading.push({ cat:'Color Grading', title:'New Shot', desc:'', tags:['LUT','Grade'], beforeData:'', afterData:'' });
   renderCGEditor();
   setTimeout(() => {
     const cards = document.querySelectorAll('#cg-editor .admin-card');
@@ -824,13 +754,12 @@ function applyChanges() {
   }));
   if (!DATA.colorGrading) DATA.colorGrading = [];
   DATA.colorGrading = DATA.colorGrading.map((s,i)=>({
-    cat:         get('cg-cat-'+i)   || 'Color Grading',
-    title:       get('cg-title-'+i) || 'Untitled Shot',
-    desc:        get('cg-desc-'+i)  || '',
-    tags:        get('cg-tags-'+i).split(',').map(t=>t.trim()).filter(Boolean),
-    orientation: (document.getElementById('cg-orient-'+i) ? document.getElementById('cg-orient-'+i).value : (s.orientation||'landscape')),
-    beforeData:  s.beforeData || '',
-    afterData:   s.afterData  || ''
+    cat:        get('cg-cat-'+i)   || 'Color Grading',
+    title:      get('cg-title-'+i) || 'Untitled Shot',
+    desc:       get('cg-desc-'+i)  || '',
+    tags:       get('cg-tags-'+i).split(',').map(t=>t.trim()).filter(Boolean),
+    beforeData: s.beforeData || '',
+    afterData:  s.afterData  || ''
   }));
   DATA.skills = DATA.skills.map((_,i)=>({
     icon: get(`sk-icon-${i}`), title: get(`sk-title-${i}`),
@@ -874,7 +803,7 @@ async function checkExportSize() {
   label.innerHTML = '⏳ Calculating…';
 
   const compressed = await compressDataImages(DATA);
-  const html  = buildExportHTML(compressed);
+  const html  = await buildExportHTML(compressed);
   const bytes = new Blob([html]).size;
   const mb    = (bytes / 1024 / 1024).toFixed(2);
   const kb    = (bytes / 1024).toFixed(0);
@@ -940,19 +869,52 @@ async function compressDataImages(data) {
   return d;
 }
 
-function buildExportHTML(exportData) {
-  var src   = document.documentElement.outerHTML;
+async function buildExportHTML(exportData) {
+  var src = document.documentElement.outerHTML;
 
-  src = src.replace(/<div id="admin-panel"[^>]*class="[^"]*open[^"]*"[^>]*>/g,
-    function(m) { return m.replace(/\bopen\b/g, '').replace(/class=" "/, 'class=""'); });
-  src = src.replace(/<div id="pwd-prompt"[^>]*class="[^"]*open[^"]*"[^>]*>/g,
-    function(m) { return m.replace(/\bopen\b/g, '').replace(/class=" "/, 'class=""'); });
+  // ── Close admin/pwd panels in export ──
+  src = src.replace(/<div id="admin-panel"([^>]*)>/g, function(m, attrs) {
+    return '<div id="admin-panel"' + attrs.replace(/\bopen\b/g, '').replace(/class="\s*"/g, 'class=""') + '>';
+  });
+  src = src.replace(/<div id="pwd-prompt"([^>]*)>/g, function(m, attrs) {
+    return '<div id="pwd-prompt"' + attrs.replace(/\bopen\b/g, '').replace(/class="\s*"/g, 'class=""') + '>';
+  });
 
-  var block = 'const DATA = ' + JSON.stringify(exportData) + ';';
-  var start = src.indexOf('const DATA = {');
-  var end   = src.indexOf('const ADMIN_PASSWORD');
-  if (start === -1 || end === -1) return src;
-  return src.slice(0, start) + block + '\n\n' + src.slice(end);
+  // ── Fetch all external JS files and inline them ──
+  var scripts = ['protection.js', 'data.js', 'main.js', 'intro.js', 'ui.js'];
+  var inlined = {};
+  for (var i = 0; i < scripts.length; i++) {
+    try {
+      var r = await fetch(scripts[i] + '?v=' + Date.now());
+      inlined[scripts[i]] = r.ok ? await r.text() : '/* ' + scripts[i] + ' not fetched */';
+    } catch(e) {
+      inlined[scripts[i]] = '/* ' + scripts[i] + ' fetch error */';
+    }
+  }
+
+  // ── Inject current DATA into the data.js content ──
+  var dataBlock = 'const DATA = ' + JSON.stringify(exportData) + ';';
+  var dataContent = inlined['data.js'] || '';
+  // Replace the existing DATA declaration in data.js
+  var dataReplaced = dataContent.replace(/const DATA\s*=\s*\{[\s\S]*?\};?\s*(?=\n|$)/, dataBlock);
+  if (dataReplaced === dataContent) {
+    // fallback: prepend the new DATA block
+    dataReplaced = dataBlock + '\n\n' + dataContent.replace(/const DATA\s*=[\s\S]*?(?=\nconst |\nvar |\nfunction |$)/, '');
+  }
+  inlined['data.js'] = dataReplaced;
+
+  // ── Replace all <script src="..."> tags with inline <script> blocks ──
+  src = src.replace(/<script\s+src="(protection\.js|data\.js|main\.js|intro\.js|ui\.js)"[^>]*><\/script>/g,
+    function(match, filename) {
+      var content = inlined[filename] || '';
+      return '<script>\n' + content + '\n</script>';
+    }
+  );
+
+  // ── Remove cursor elements that were injected into DOM (they get re-created by script) ──
+  // Keep them since the script recreates cursor logic
+
+  return src;
 }
 
 function showSizeBar(bytes, color, msg) {
@@ -979,7 +941,7 @@ async function exportHTML() {
 
   try {
     const compressed = await compressDataImages(DATA);
-    const html       = buildExportHTML(compressed);
+    const html       = await buildExportHTML(compressed);
     const bytes      = new Blob([html]).size;
 
     if (bytes > 3 * 1024 * 1024) {
@@ -1133,11 +1095,14 @@ function getGitHubSettings() {
 
 function showGhStatus(msg, color) {
   var el = document.getElementById('gh-status');
-  el.style.display = 'block';
-  el.style.background = color === '#e74c3c' ? 'rgba(192,57,43,0.1)' : 'rgba(46,204,113,0.08)';
-  el.style.border = '1px solid ' + color + '44';
-  el.style.color = color;
+  if (!el) return;
+  var bg = color === '#e74c3c' ? 'rgba(192,57,43,0.1)'
+         : color === '#2ecc71' ? 'rgba(46,204,113,0.08)'
+         : color === '#3498db' ? 'rgba(52,152,219,0.08)'
+         : 'rgba(243,156,18,0.08)';
+  el.style.cssText = 'display:block;background:' + bg + ';border:1px solid ' + color + '66;color:' + color + ';padding:0.8rem 1rem;border-radius:3px;font-family:var(--font-mono);font-size:0.73rem;line-height:1.7;margin-top:0.9rem;';
   el.innerHTML = msg;
+  setTimeout(function(){ el.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 120);
 }
 
 async function testGitHubConnection() {
@@ -1160,66 +1125,140 @@ async function testGitHubConnection() {
 }
 
 async function publishToGitHub() {
+  // ── 1. Make sure admin panel is open and status is visible ──
   var adminEl = document.getElementById('admin-panel');
   var pwdEl   = document.getElementById('pwd-prompt');
-
   if (adminEl) adminEl.classList.add('open');
   if (pwdEl)   pwdEl.classList.remove('open');
 
-  if (typeof switchTab === 'function') switchTab('publish');
+  // Switch to publish tab without relying on event object
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  var pubTab = document.querySelector('.admin-tab[onclick*="publish"]');
+  if (pubTab) pubTab.classList.add('active');
+  var pubSec = document.getElementById('tab-publish');
+  if (pubSec) pubSec.classList.add('active');
 
-  applyChanges();
+  // Force status bar visible immediately so user sees feedback
+  var statusEl = document.getElementById('gh-status');
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.style.background = 'rgba(243,156,18,0.1)';
+    statusEl.style.border = '1px solid #f39c1244';
+    statusEl.style.color = '#f39c12';
+    statusEl.innerHTML = '⏳ Starting publish — please wait…';
+    setTimeout(function(){ statusEl.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 150);
+  }
 
-  var s = getGitHubSettings();
-  if (!s.token) {
-    showGhStatus('⚠️ Enter your GitHub Personal Access Token below before publishing.', '#f39c12');
+  // ── 2. Read settings directly from the input fields ──
+  var ghUser  = (document.getElementById('gh-user')  ? document.getElementById('gh-user').value.trim()  : '') || 'hrs-editz';
+  var ghRepo  = (document.getElementById('gh-repo')  ? document.getElementById('gh-repo').value.trim()  : '') || 'Portfolio';
+  var ghFile  = (document.getElementById('gh-file')  ? document.getElementById('gh-file').value.trim()  : '') || 'index.html';
+  var ghToken = (document.getElementById('gh-token') ? document.getElementById('gh-token').value.trim() : '');
+
+  // Also try localStorage as fallback
+  if (!ghToken) {
+    try {
+      var stored = JSON.parse(localStorage.getItem('portfolio_gh_settings') || '{}');
+      if (stored.token) ghToken = stored.token;
+    } catch(e) {}
+  }
+
+  if (!ghToken) {
+    showGhStatus('⚠️ No GitHub token found. Enter your Personal Access Token in the field above and click 💾 Save Settings first.', '#f39c12');
     return;
   }
 
-  var publishBtns = document.querySelectorAll('[onclick="publishToGitHub()"]');
-  publishBtns.forEach(function(b) { b.disabled = true; b.style.opacity = '0.6'; b.style.cursor = 'not-allowed'; });
+  // ── 3. Disable publish buttons ──
+  var publishBtns = document.querySelectorAll('button[onclick="publishToGitHub()"], button[onclick*="publishToGitHub"]');
+  publishBtns.forEach(function(b) { b.disabled = true; b.style.opacity = '0.5'; });
 
-  var filePath = s.file || 'index.html';
-  var apiBase = 'https://api.github.com/repos/' + s.user + '/' + s.repo + '/contents/' + filePath;
+  var apiBase = 'https://api.github.com/repos/' + ghUser + '/' + ghRepo + '/contents/' + ghFile;
   var headers = {
-    'Authorization': 'token ' + s.token,
+    'Authorization': 'token ' + ghToken,
     'Accept': 'application/vnd.github.v3+json',
     'Content-Type': 'application/json'
   };
 
-  showGhStatus('⏳ Compressing and preparing your portfolio…', '#f39c12');
-
   try {
-    var compressed = await compressDataImages(DATA);
+    // ── 4. Save current form values into DATA ──
+    showGhStatus('⏳ Saving changes…', '#f39c12');
+    try { applyChanges(); } catch(e) { console.warn('applyChanges error:', e); }
 
-    var adminOpenBefore = adminEl && adminEl.classList.contains('open');
-    if (adminEl) adminEl.classList.remove('open');
-    if (pwdEl)   pwdEl.classList.remove('open');
+    // ── 5. Compress images ──
+    showGhStatus('⏳ Compressing images…', '#f39c12');
+    var compressed;
+    try {
+      compressed = await compressDataImages(DATA);
+    } catch(e) {
+      compressed = JSON.parse(JSON.stringify(DATA)); // fallback: uncompressed clone
+    }
 
-    var html = buildExportHTML(compressed);
-
-    if (adminEl && adminOpenBefore) adminEl.classList.add('open');
-
-    var encoded = btoa(unescape(encodeURIComponent(html)));
-
-    showGhStatus('⏳ Connecting to GitHub…', '#f39c12');
-    var getResp = await fetch(apiBase, { headers: headers });
-    var sha = null;
-    if (getResp.ok) {
-      var fileData = await getResp.json();
-      sha = fileData.sha;
-    } else if (getResp.status !== 404) {
-      var errData = await getResp.json();
-      showGhStatus('❌ Could not read file: ' + (errData.message || getResp.status), '#e74c3c');
-      publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; b.style.cursor = ''; });
+    // ── 6. Build the HTML export (fetches & inlines all JS files) ──
+    showGhStatus('⏳ Building HTML — fetching scripts to inline…', '#f39c12');
+    var html;
+    try {
+      html = await buildExportHTML(compressed);
+    } catch(e) {
+      showGhStatus('❌ Failed to build HTML: ' + e.message, '#e74c3c');
+      publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
       return;
     }
 
+    if (!html || html.length < 500) {
+      showGhStatus('❌ HTML export came out empty or too small. Please try again.', '#e74c3c');
+      publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+      return;
+    }
+
+    // ── 7. Base64 encode safely ──
+    showGhStatus('⏳ Encoding for GitHub…', '#f39c12');
+    var encoded;
+    try {
+      // Safe UTF-8 → base64 that handles all characters
+      var bytes = new TextEncoder().encode(html);
+      var binary = '';
+      for (var i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      encoded = btoa(binary);
+    } catch(e) {
+      try { encoded = btoa(unescape(encodeURIComponent(html))); }
+      catch(e2) {
+        showGhStatus('❌ Encoding failed: ' + e2.message, '#e74c3c');
+        publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+        return;
+      }
+    }
+
+    // ── 8. Get current file SHA (needed for update) ──
+    showGhStatus('⏳ Connecting to GitHub…', '#f39c12');
+    var sha = null;
+    try {
+      var getResp = await fetch(apiBase, { headers: headers });
+      if (getResp.ok) {
+        var fileData = await getResp.json();
+        sha = fileData.sha;
+      } else if (getResp.status === 401) {
+        showGhStatus('❌ Authentication failed — your GitHub token is invalid or expired. <a href="https://github.com/settings/tokens/new?scopes=repo&description=Portfolio+Publisher" target="_blank" style="color:var(--accent);">Create a new token ↗</a>', '#e74c3c');
+        publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+        return;
+      } else if (getResp.status === 404) {
+        // File doesn't exist yet — will create it fresh (sha stays null)
+        sha = null;
+      } else {
+        var errTxt = await getResp.text();
+        showGhStatus('❌ GitHub read error (' + getResp.status + '): ' + errTxt, '#e74c3c');
+        publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+        return;
+      }
+    } catch(e) {
+      showGhStatus('❌ Network error reaching GitHub: ' + e.message, '#e74c3c');
+      publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
+      return;
+    }
+
+    // ── 9. Push to GitHub ──
     showGhStatus('⏳ Uploading to GitHub — please wait…', '#f39c12');
-    var body = {
-      message: '🎬 Portfolio update via admin panel',
-      content: encoded
-    };
+    var body = { message: '🎬 Portfolio update via admin panel', content: encoded };
     if (sha) body.sha = sha;
 
     var putResp = await fetch(apiBase, {
@@ -1227,26 +1266,35 @@ async function publishToGitHub() {
       headers: headers,
       body: JSON.stringify(body)
     });
-    var putData = await putResp.json();
+
+    var putData;
+    try { putData = await putResp.json(); } catch(e) { putData = {}; }
 
     if (putResp.ok) {
-      var liveUrl = 'https://' + s.user + '.github.io/' + s.repo + '/';
+      var liveUrl = 'https://' + ghUser + '.github.io/' + ghRepo + '/';
       showGhStatus(
         '✅ <strong>Published successfully!</strong> Your site is updating now.<br>' +
         '🌐 Live in ~60 seconds: <a href="' + liveUrl + '" target="_blank" style="color:var(--accent);">' + liveUrl + ' ↗</a><br>' +
-        '<span style="color:var(--muted);font-size:0.68rem;">Videos synced via Google Drive links — no re-upload needed.</span>',
+        '<span style="color:var(--muted);font-size:0.68rem;">Changes committed to GitHub — GitHub Pages will rebuild automatically.</span>',
         '#2ecc71'
       );
-      var statusEl = document.getElementById('gh-status');
-      if (statusEl) setTimeout(function(){ statusEl.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 100);
+      // Save settings to localStorage after successful publish
+      try {
+        localStorage.setItem('portfolio_gh_settings', JSON.stringify({ user: ghUser, repo: ghRepo, file: ghFile, token: ghToken }));
+      } catch(e) {}
     } else {
-      showGhStatus('❌ Publish failed: ' + (putData.message || JSON.stringify(putData)), '#e74c3c');
+      var errMsg = putData.message || JSON.stringify(putData);
+      if (putResp.status === 422) errMsg = 'SHA mismatch — file was changed externally. Please try again.';
+      if (putResp.status === 401) errMsg = 'Token invalid or missing "repo" permission. <a href="https://github.com/settings/tokens/new?scopes=repo&description=Portfolio+Publisher" target="_blank" style="color:var(--accent);">Create new token ↗</a>';
+      showGhStatus('❌ Publish failed (' + putResp.status + '): ' + errMsg, '#e74c3c');
     }
+
   } catch(e) {
-    showGhStatus('❌ Error: ' + e.message, '#e74c3c');
+    showGhStatus('❌ Unexpected error: ' + e.message + '<br><small>Open browser console (F12) for details.</small>', '#e74c3c');
+    console.error('publishToGitHub error:', e);
   }
 
-  publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; b.style.cursor = ''; });
+  publishBtns.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
 }
 
 async function autoSyncToGitHub() {
