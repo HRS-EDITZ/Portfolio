@@ -232,26 +232,31 @@ function driveEmbedUrl(id) {
 }
 
 function driveViewUrl(id) {
-  return id ? 'https://drive.google.com/file/d/' + id + '/view' : '';
+  return id ? 'https://drive.google.com/file/d/' + id + '/view?usp=sharing' : '';
 }
 
 function buildDriveEmbed(driveUrl, isShort) {
   var id = extractDriveId(driveUrl);
   if (!id) return '';
+  var viewUrl = driveViewUrl(id);
   var embedUrl = driveEmbedUrl(id);
-  var viewUrl  = driveViewUrl(id);
-  return '<div style="position:relative;width:100%;height:100%;background:#000;">' +
+
+  /* Reliable cross-browser player:
+     - Shows Drive iframe directly (works when Drive allows embedding)
+     - Large "▶ Watch Video" button always visible as fallback
+     - Opens in new tab so no iframe blocking issues */
+  return '<div style="position:relative;width:100%;height:100%;background:#000;display:flex;flex-direction:column;">' +
     '<iframe src="' + embedUrl + '" ' +
-    'style="width:100%;height:100%;border:none;display:block;" ' +
-    'allowfullscreen ' +
-    'allow="autoplay; fullscreen; picture-in-picture">' +
+    'style="width:100%;flex:1;border:none;min-height:200px;" ' +
+    'allowfullscreen allow="autoplay; fullscreen; picture-in-picture" ' +
+    'referrerpolicy="no-referrer-when-downgrade">' +
     '</iframe>' +
-    /* "Open in Drive" button — always visible so viewers can tap if iframe is blocked */
-    '<a href="' + viewUrl + '" target="_blank" rel="noopener" ' +
-    'style="position:absolute;bottom:12px;right:12px;z-index:20;' +
-    'background:rgba(0,0,0,0.75);color:#e8c547;font-family:monospace;font-size:0.72rem;' +
-    'padding:6px 12px;border-radius:3px;text-decoration:none;letter-spacing:0.05em;' +
-    'border:1px solid rgba(232,197,71,0.5);">▶ Open in Drive</a>' +
+    '<a href="' + viewUrl + '" target="_blank" rel="noopener noreferrer" ' +
+    'style="display:block;width:100%;padding:14px 0;background:#e8c547;color:#000;' +
+    'text-align:center;font-family:monospace;font-weight:700;font-size:0.9rem;' +
+    'text-decoration:none;letter-spacing:0.08em;flex-shrink:0;">' +
+    '▶ WATCH VIDEO IN GOOGLE DRIVE' +
+    '</a>' +
     '</div>';
 }
 
@@ -479,7 +484,7 @@ function checkPwd() {
 const _pwdInput = document.getElementById('pwd-input');
 if (_pwdInput) _pwdInput.addEventListener('keydown', e => { if(e.key==='Enter') checkPwd(); });
 
-function openAdmin() { populateAdmin(); document.getElementById('admin-panel').classList.add('open'); }
+function openAdmin() { populateAdmin(); document.getElementById('admin-panel').classList.add('open'); loadGitHubSettings(); }
 function closeAdmin() { document.getElementById('admin-panel').classList.remove('open'); }
 function switchTab(name, clickedEl) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
@@ -1375,11 +1380,6 @@ async function autoFetchFromGitHub() {
 }
 
 (function() {
-  var origOpen = window.openAdmin;
-  window.openAdmin = function() {
-    if (typeof origOpen === 'function') origOpen();
-    loadGitHubSettings();
-  };
   autoFetchFromGitHub();
 })();
 const obs = new IntersectionObserver(entries => {
