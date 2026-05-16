@@ -11,20 +11,17 @@
   <link rel="stylesheet" href="styles.css">
 <style>
 /* ── Disable custom cursor — use normal OS cursor ── */
-*, *::before, *::after { cursor: auto !important; }
-a, button, [role="button"], input[type="range"], label[onclick],
-.cg-card, .video-card, .project-card, .skill-card,
-.admin-btn-add, .admin-btn-remove, .admin-save, .admin-export,
-.nav-cta, .hsocial-btn, select { cursor: pointer !important; }
-input[type="text"], input[type="password"], input[type="email"],
-textarea { cursor: text !important; }
-input[type="range"] { cursor: ew-resize !important; }
 .cursor, .cursor-dot, .cursor-ring, #cursor-dot, #cursor-ring { display: none !important; }
 
 /* ============================================================
-   COLOR GRADING SECTION
+   COLOR GRADING SECTION — matches existing section layout
 ============================================================ */
-#color-grading { padding: var(--section-pad) var(--side-pad); }
+#color-grading {
+  padding: 6rem 6%;
+}
+@media (max-width: 768px) {
+  #color-grading { padding: 4rem 5%; }
+}
 
 .cg-grid {
   display: grid;
@@ -596,7 +593,7 @@ input[type="range"] { cursor: ew-resize !important; }
 </div>
 
 <!-- Hidden edit trigger -->
-<span id="edit-trigger" style="position:fixed;bottom:1rem;right:1rem;width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.06);cursor:pointer;z-index:200;" title="Admin (triple-click)"></span>
+<span id="edit-trigger" style="position:fixed;bottom:1.2rem;right:1.2rem;width:22px;height:22px;border-radius:50%;background:rgba(232,197,71,0.15);border:1px solid rgba(232,197,71,0.3);cursor:pointer;z-index:500;" title="Admin (triple-click)"></span>
 
 <!-- ABOUT -->
 <section id="about">
@@ -713,6 +710,9 @@ input[type="range"] { cursor: ew-resize !important; }
 </section>
 
 <!-- EXPERIENCE -->
+<section id="experience">
+  <div class="fade-up visible">
+    <div class="section-eyebrow">Journey</div>
     <h2 class="section-title">Experience</h2>
     <p class="section-sub">Years of refining the craft across agencies, studios, and independent productions.</p>
   </div>
