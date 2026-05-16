@@ -225,15 +225,12 @@ function buildDriveEmbed(driveUrl, isShort) {
   var id = extractDriveId(driveUrl);
   if (!id) return '';
   var embedUrl = driveEmbedUrl(id);
-  var style = isShort
-    ? 'width:100%;height:100%;border:none;display:block;'
-    : 'width:100%;height:100%;border:none;display:block;';
+  var style = 'width:100%;height:100%;border:none;display:block;';
   return '<div style="position:relative;width:100%;height:100%;">' +
     '<iframe src="' + embedUrl + '" ' +
     'style="' + style + '" ' +
-    'allowfullscreen ' +
     'allow="autoplay; fullscreen" ' +
-    'sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms">' +
+    'allowfullscreen>' +
     '</iframe>' +
     '<div style="position:absolute;top:0;right:0;width:70px;height:55px;z-index:10;background:#000;pointer-events:all;cursor:default;"></div>' +
     '</div>';
