@@ -408,61 +408,39 @@ function removeBrandLogo() {
   render();
 }
 
+/* ── Admin trigger: triple-click the dot OR press Ctrl+Shift+E ── */
+let clickCount = 0, clickTimer;
+const _editTrigger = document.getElementById('edit-trigger');
+if (_editTrigger) {
+  _editTrigger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    clickCount++;
+    clearTimeout(clickTimer);
+    clickTimer = setTimeout(function() { clickCount = 0; }, 2000);
+    if (clickCount >= 3) { clickCount = 0; openPwd(); }
+  });
+}
 /* Keyboard shortcut: Ctrl + Shift + E */
 document.addEventListener('keydown', function(e) {
   if (e.ctrlKey && e.shiftKey && e.key === 'E') { e.preventDefault(); openPwd(); }
 });
 
 function openPwd() {
-  var p = document.getElementById('pwd-prompt');
-  if (!p) return;
-  p.classList.add('open');
-  p.style.display = 'flex';
-  var inp = document.getElementById('pwd-input');
-  if (inp) inp.value = '';
-  var err = document.getElementById('pwd-err');
-  if (err) err.style.display = 'none';
-  setTimeout(function() { var i = document.getElementById('pwd-input'); if(i) i.focus(); }, 100);
+  document.getElementById('pwd-prompt').classList.add('open');
+  document.getElementById('pwd-input').value = '';
+  document.getElementById('pwd-err').style.display = 'none';
+  setTimeout(() => document.getElementById('pwd-input').focus(), 100);
 }
-function closePwd() {
-  var p = document.getElementById('pwd-prompt');
-  if (p) { p.classList.remove('open'); p.style.display = 'none'; }
-}
+function closePwd() { document.getElementById('pwd-prompt').classList.remove('open'); }
 function checkPwd() {
-  var inp = document.getElementById('pwd-input');
-  var val = inp ? inp.value : '';
-  if (val === ADMIN_PASSWORD) {
-    closePwd();
-    try {
-      openAdmin();
-    } catch(err) {
-      console.error('openAdmin crashed:', err);
-      var p = document.getElementById('admin-panel');
-      if (p) { p.style.cssText = 'display:block!important;position:fixed;inset:0;z-index:99980;background:rgba(0,0,0,0.92);overflow-y:auto;padding:2rem 1rem;'; }
-    }
-  } else {
-    var e = document.getElementById('pwd-err');
-    if (e) e.style.display = 'block';
-  }
+  if (document.getElementById('pwd-input').value === ADMIN_PASSWORD) { closePwd(); openAdmin(); }
+  else { document.getElementById('pwd-err').style.display = 'block'; }
 }
 const _pwdInput = document.getElementById('pwd-input');
 if (_pwdInput) _pwdInput.addEventListener('keydown', e => { if(e.key==='Enter') checkPwd(); });
 
-function openAdmin() {
-  try { populateAdmin(); } catch(e) { console.error('populateAdmin error:', e); }
-  var p = document.getElementById('admin-panel');
-  if (p) {
-    p.classList.add('open');
-    p.style.display = 'block';
-  }
-  document.body.style.overflow = 'hidden';
-  if (typeof loadGitHubSettings === 'function') loadGitHubSettings();
-}
-function closeAdmin() {
-  var p = document.getElementById('admin-panel');
-  if (p) { p.classList.remove('open'); p.style.display = ''; }
-  document.body.style.overflow = '';
-}
+function openAdmin() { populateAdmin(); document.getElementById('admin-panel').classList.add('open'); }
+function closeAdmin() { document.getElementById('admin-panel').classList.remove('open'); }
 function switchTab(name, clickedEl) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
   var tabBtn = clickedEl || (typeof event !== 'undefined' && event && event.target) || null;
@@ -480,12 +458,12 @@ function populateAdmin() {
   var previewImg  = document.getElementById('admin-logo-preview');
   var removeBtn   = document.getElementById('logo-remove-btn');
   if (DATA.brandLogo && DATA.brandLogo.length > 50) {
-    if (previewImg)  previewImg.src = DATA.brandLogo;
-    if (previewWrap) previewWrap.style.display = 'block';
-    if (removeBtn)   removeBtn.style.display = 'inline-block';
+    previewImg.src = DATA.brandLogo;
+    previewWrap.style.display = 'block';
+    removeBtn.style.display = 'inline-block';
   } else {
-    if (previewWrap) previewWrap.style.display = 'none';
-    if (removeBtn)   removeBtn.style.display = 'none';
+    previewWrap.style.display = 'none';
+    removeBtn.style.display = 'none';
   }
 
   set('edit-name', DATA.name); set('edit-badge', DATA.badge);
@@ -806,6 +784,7 @@ function applyChanges() {
 
   render();
   saveToLocalStorage();
+  closeAdmin();
   const btn = document.querySelector('.admin-save');
   btn.textContent = '⏳ Syncing…'; btn.disabled = true;
   autoSyncToGitHub().then(() => {
@@ -1371,6 +1350,11 @@ async function autoFetchFromGitHub() {
 }
 
 (function() {
+  var origOpen = window.openAdmin;
+  window.openAdmin = function() {
+    origOpen();
+    loadGitHubSettings();
+  };
   autoFetchFromGitHub();
 })();
 const obs = new IntersectionObserver(entries => {
