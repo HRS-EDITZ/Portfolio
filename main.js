@@ -185,7 +185,8 @@ function render() {
     var hasAfter  = cg.afterData  && cg.afterData.length > 100;
     var sliderHtml = '';
     if (hasBefore || hasAfter) {
-      sliderHtml = '<div class="cg-slider-wrap" id="cg-slider-' + i + '">' +
+      var cgItemLayout = cg.layout || DATA.cgLayout || 'landscape';
+      sliderHtml = '<div class="cg-slider-wrap' + (cgItemLayout === 'portrait' ? ' portrait' : '') + '" id="cg-slider-' + i + '">' +
         (hasAfter  ? '<img class="cg-img-after"  src="' + cg.afterData  + '" alt="After">'  : '') +
         (hasBefore ? '<img class="cg-img-before" src="' + cg.beforeData + '" alt="Before">' : '') +
         '<div class="cg-divider-line" id="cg-line-' + i + '"></div>' +
@@ -228,15 +229,16 @@ function render() {
   var dwLayout = DATA.dwLayout || 'landscape';
   setHTML('designwork-container', dwData.map(function(dw, i) {
     var hasPoster = dw.posterData && dw.posterData.length > 100;
-    var badgeClass = dwLayout === 'portrait' ? 'portrait' : 'landscape';
-    var badgeText  = dwLayout === 'portrait' ? '9:16' : '16:9';
+    var itemLayout = dw.layout || dwLayout;
+    var badgeClass = itemLayout === 'portrait' ? 'portrait' : 'landscape';
+    var badgeText  = itemLayout === 'portrait' ? '9:16' : '16:9';
     var posterHtml = hasPoster
       ? '<img src="' + dw.posterData + '" alt="' + (dw.title||'Poster') + '">'
       : '<div class="dw-poster-placeholder">🖼️<span>Upload poster in admin panel</span></div>';
     var tagsHtml = (dw.tags||[]).map(function(t){ return '<span class="dw-tag">' + t + '</span>'; }).join('');
     var clickAttr = hasPoster ? ' onclick="openDWLightbox(' + i + ')"' : '';
     return '<div class="dw-card"' + clickAttr + (hasPoster ? '' : ' style="cursor:default;"') + '>' +
-      '<div class="dw-poster-wrap">' +
+      '<div class="dw-poster-wrap' + (itemLayout === 'portrait' ? ' portrait' : '') + '">' +
         posterHtml +
         '<span class="dw-poster-badge ' + badgeClass + '">' + badgeText + '</span>' +
       '</div>' +
@@ -335,6 +337,17 @@ function renderColorGradeEditor() {
 
       '</div>' + // end upload-row
 
+      // Per-item layout picker
+      '<div class="form-group" style="margin-bottom:0.9rem;">' +
+      '<label style="font-family:var(--font-mono);font-size:0.72rem;letter-spacing:0.06em;color:var(--muted);display:block;margin-bottom:0.5rem;">📐 IMAGE LAYOUT</label>' +
+      '<div style="display:flex;gap:0.6rem;">' +
+      '<label style="display:flex;align-items:center;gap:0.45rem;cursor:pointer;background:' + ((cg.layout||'landscape')==='landscape' ? 'rgba(232,197,71,0.12)' : 'rgba(255,255,255,0.03)') + ';border:1px solid ' + ((cg.layout||'landscape')==='landscape' ? 'rgba(232,197,71,0.45)' : 'var(--border)') + ';border-radius:3px;padding:0.55rem 1rem;flex:1;font-family:var(--font-mono);font-size:0.75rem;color:' + ((cg.layout||'landscape')==='landscape' ? 'var(--accent)' : 'var(--muted)') + ';transition:all 0.2s;">' +
+      '<input type="radio" name="cg-item-layout-' + i + '" value="landscape" ' + ((cg.layout||'landscape')==='landscape' ? 'checked' : '') + ' onchange="setCGItemLayout(' + i + ',\'landscape\')" style="accent-color:var(--accent);">🖼️ Landscape (16:9)</label>' +
+      '<label style="display:flex;align-items:center;gap:0.45rem;cursor:pointer;background:' + ((cg.layout||'landscape')==='portrait' ? 'rgba(232,197,71,0.12)' : 'rgba(255,255,255,0.03)') + ';border:1px solid ' + ((cg.layout||'landscape')==='portrait' ? 'rgba(232,197,71,0.45)' : 'var(--border)') + ';border-radius:3px;padding:0.55rem 1rem;flex:1;font-family:var(--font-mono);font-size:0.75rem;color:' + ((cg.layout||'landscape')==='portrait' ? 'var(--accent)' : 'var(--muted)') + ';transition:all 0.2s;">' +
+      '<input type="radio" name="cg-item-layout-' + i + '" value="portrait" ' + ((cg.layout||'landscape')==='portrait' ? 'checked' : '') + ' onchange="setCGItemLayout(' + i + ',\'portrait\')" style="accent-color:var(--accent);">📱 Portrait (9:16)</label>' +
+      '</div>' +
+      '</div>' +
+
       '<div class="form-row">' +
       '<div class="form-group"><label>Title</label><input type="text" id="cg-title-' + i + '" value="' + (cg.title||'') + '" placeholder="e.g. Golden Hour Grade"></div>' +
       '<div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="cg-tags-' + i + '" value="' + (cg.tags||[]).join(', ') + '" placeholder="DaVinci Resolve, Teal & Orange"></div>' +
@@ -343,6 +356,13 @@ function renderColorGradeEditor() {
 
       '</div>'; // end admin-card
   });
+}
+
+function setCGItemLayout(i, val) {
+  if (!DATA.colorGrades || !DATA.colorGrades[i]) return;
+  DATA.colorGrades[i].layout = val;
+  renderColorGradeEditor();
+  render();
 }
 
 function handleCGFile(event, i, side) {
@@ -369,7 +389,7 @@ function removeColorGrade(i) {
 
 function addColorGrade() {
   if (!DATA.colorGrades) DATA.colorGrades = [];
-  DATA.colorGrades.push({ title: 'New Grade', desc: '', tags: [], beforeData: '', afterData: '' });
+  DATA.colorGrades.push({ title: 'New Grade', desc: '', tags: [], beforeData: '', afterData: '', layout: 'landscape' });
   renderColorGradeEditor();
   setTimeout(function() {
     var cards = document.querySelectorAll('#colorgrade-editor .admin-card');
@@ -426,7 +446,7 @@ function renderDesignWorkEditor() {
   var layout = DATA.dwLayout || 'landscape';
   dwData.forEach(function(dw, i) {
     var hasPoster = dw.posterData && dw.posterData.length > 100;
-    var isPortrait = layout === 'portrait';
+    var isPortrait = (dw.layout || layout) === 'portrait';
     c.innerHTML +=
       '<div class="admin-card" id="dw-card-' + i + '">' +
       '<div class="admin-card-header">' +
@@ -434,7 +454,18 @@ function renderDesignWorkEditor() {
       '<button class="admin-btn-remove" onclick="removeDesignWork(' + i + ')">Remove</button>' +
       '</div>' +
 
-      // Upload box
+      // Per-item layout picker — shown BEFORE upload so user picks format first
+      '<div class="form-group" style="margin-bottom:0.9rem;">' +
+      '<label style="font-family:var(--font-mono);font-size:0.72rem;letter-spacing:0.06em;color:var(--muted);display:block;margin-bottom:0.5rem;">📐 IMAGE LAYOUT</label>' +
+      '<div style="display:flex;gap:0.6rem;">' +
+      '<label style="display:flex;align-items:center;gap:0.45rem;cursor:pointer;background:' + (!isPortrait ? 'rgba(232,197,71,0.12)' : 'rgba(255,255,255,0.03)') + ';border:1px solid ' + (!isPortrait ? 'rgba(232,197,71,0.45)' : 'var(--border)') + ';border-radius:3px;padding:0.55rem 1rem;flex:1;font-family:var(--font-mono);font-size:0.75rem;color:' + (!isPortrait ? 'var(--accent)' : 'var(--muted)') + ';transition:all 0.2s;">' +
+      '<input type="radio" name="dw-item-layout-' + i + '" value="landscape" ' + (!isPortrait ? 'checked' : '') + ' onchange="setDWItemLayout(' + i + ',\'landscape\')" style="accent-color:var(--accent);">🖼️ Landscape (16:9)</label>' +
+      '<label style="display:flex;align-items:center;gap:0.45rem;cursor:pointer;background:' + (isPortrait ? 'rgba(232,197,71,0.12)' : 'rgba(255,255,255,0.03)') + ';border:1px solid ' + (isPortrait ? 'rgba(232,197,71,0.45)' : 'var(--border)') + ';border-radius:3px;padding:0.55rem 1rem;flex:1;font-family:var(--font-mono);font-size:0.75rem;color:' + (isPortrait ? 'var(--accent)' : 'var(--muted)') + ';transition:all 0.2s;">' +
+      '<input type="radio" name="dw-item-layout-' + i + '" value="portrait" ' + (isPortrait ? 'checked' : '') + ' onchange="setDWItemLayout(' + i + ',\'portrait\')" style="accent-color:var(--accent);">📱 Portrait (9:16)</label>' +
+      '</div>' +
+      '</div>' +
+
+      // Upload box — aspect changes to match chosen layout
       '<div style="margin-bottom:1rem;">' +
       '<div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--muted);margin-bottom:0.5rem;letter-spacing:0.04em;">POSTER IMAGE (' + (isPortrait ? '9:16 Portrait' : '16:9 Landscape') + ')</div>' +
       '<div class="dw-upload-box' + (isPortrait ? ' portrait-preview' : '') + (hasPoster ? ' has-img' : '') + '" onclick="document.getElementById(\'dw-poster-' + i + '\').click()" id="dw-poster-box-' + i + '" style="' + (isPortrait ? 'max-width:180px;' : '') + '">' +
@@ -452,6 +483,13 @@ function renderDesignWorkEditor() {
 
       '</div>';
   });
+}
+
+function setDWItemLayout(i, val) {
+  if (!DATA.designWork || !DATA.designWork[i]) return;
+  DATA.designWork[i].layout = val;
+  renderDesignWorkEditor();
+  render();
 }
 
 function handleDWFile(event, i) {
@@ -474,7 +512,7 @@ function removeDesignWork(i) {
 
 function addDesignWork() {
   if (!DATA.designWork) DATA.designWork = [];
-  DATA.designWork.push({ title: 'New Poster', desc: '', tags: [], posterData: '' });
+  DATA.designWork.push({ title: 'New Poster', desc: '', tags: [], posterData: '', layout: 'landscape' });
   renderDesignWorkEditor();
   setTimeout(function() {
     var cards = document.querySelectorAll('#designwork-editor .admin-card');
@@ -907,21 +945,25 @@ function applyChanges() {
   DATA.dwLayout = (checkedDWLayout ? checkedDWLayout.value : null) || DATA.dwLayout || 'landscape';
 
   DATA.colorGrades = (DATA.colorGrades || []).map(function(cg, i) {
+    var layoutRadio = document.querySelector('input[name="cg-item-layout-' + i + '"]:checked');
     return {
       title:      get('cg-title-' + i) || cg.title || '',
       desc:       get('cg-desc-'  + i) || '',
       tags:       (get('cg-tags-' + i)||'').split(',').map(function(s){return s.trim();}).filter(Boolean),
       beforeData: cg.beforeData || '',
-      afterData:  cg.afterData  || ''
+      afterData:  cg.afterData  || '',
+      layout:     layoutRadio ? layoutRadio.value : (cg.layout || 'landscape')
     };
   });
 
   DATA.designWork = (DATA.designWork || []).map(function(dw, i) {
+    var layoutRadio = document.querySelector('input[name="dw-item-layout-' + i + '"]:checked');
     return {
       title:      get('dw-title-' + i) || dw.title || '',
       desc:       get('dw-desc-'  + i) || '',
       tags:       (get('dw-tags-' + i)||'').split(',').map(function(s){return s.trim();}).filter(Boolean),
-      posterData: dw.posterData || ''
+      posterData: dw.posterData || '',
+      layout:     layoutRadio ? layoutRadio.value : (dw.layout || 'landscape')
     };
   });
 
