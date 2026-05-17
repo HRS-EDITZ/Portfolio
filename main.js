@@ -4,90 +4,7 @@
    contact form (EmailJS), scroll & animation observers
 ================================================================ */
 
-// ── Color Grade CSS injection ──────────────────────────────────
-(function(){
-  var s = document.createElement('style');
-  s.textContent = `
-    #colorgrade { padding: var(--section-pad, 5rem) var(--side-pad, clamp(1.5rem,5vw,5rem)); }
-    .cg-fmt-btn {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      color: var(--muted);
-      padding: 0.45rem 1.1rem;
-      border-radius: 2px;
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      letter-spacing: 0.06em;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .cg-fmt-btn.active, .cg-fmt-btn:hover {
-      background: rgba(232,197,71,0.12);
-      border-color: rgba(232,197,71,0.5);
-      color: var(--accent, #e8c547);
-    }
-    .cg-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1.5rem;
-    }
-    .cg-card {
-      background: var(--dark2, #111);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      overflow: hidden;
-      cursor: pointer;
-      transition: transform 0.25s, box-shadow 0.25s;
-    }
-    .cg-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
-    .cg-card.format-portrait { max-width: 320px; margin: 0 auto; }
-    .cg-thumb {
-      position: relative;
-      width: 100%;
-      overflow: hidden;
-      background: #080808;
-    }
-    .cg-thumb.landscape { aspect-ratio: 16/9; }
-    .cg-thumb.portrait  { aspect-ratio: 9/16; }
-    .cg-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
-    .cg-thumb-placeholder {
-      width:100%; height:100%;
-      display:flex; align-items:center; justify-content:center;
-      font-size:2.5rem; color:var(--muted);
-    }
-    .cg-play-overlay {
-      position:absolute; inset:0;
-      display:flex; align-items:center; justify-content:center;
-      background:rgba(0,0,0,0.35);
-      opacity:0; transition:opacity 0.2s;
-    }
-    .cg-card:hover .cg-play-overlay { opacity:1; }
-    .cg-play-overlay svg { width:48px; height:48px; fill:rgba(255,255,255,0.85); }
-    .cg-format-badge {
-      position:absolute; top:0.5rem; right:0.5rem;
-      background:rgba(0,0,0,0.7); color:var(--accent,#e8c547);
-      font-family:var(--font-mono); font-size:0.6rem;
-      padding:0.2rem 0.45rem; border-radius:2px; letter-spacing:0.06em;
-    }
-    .cg-info { padding: 0.9rem 1rem; }
-    .cg-cat  { font-family:var(--font-mono); font-size:0.68rem; color:var(--accent,#e8c547); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.3rem; }
-    .cg-title { font-size:1rem; font-weight:600; color:var(--text,#eee); margin-bottom:0.3rem; }
-    .cg-desc  { font-size:0.82rem; color:var(--muted); line-height:1.5; }
-  `;
-  document.head.appendChild(s);
-})();
-
 const ADMIN_PASSWORD = 'editor2025';
-
-// ── Color Grade data default ────────────────────────────────────
-if (!window.DATA) window.DATA = {};
-if (!window.DATA.colorGrades) {
-  window.DATA.colorGrades = [];
-}
-
-// ── Color Grade active format filter ───────────────────────────
-var _cgFormat = 'all'; // 'all' | 'portrait' | 'landscape'
-var _cgIdx = 0;
 
 function render() {
   var headerLogoImg  = document.getElementById('site-header-logo-img');
@@ -172,7 +89,7 @@ function render() {
   const videosHTML = DATA.videos.length === 0
     ? '<p style="color:var(--muted);font-family:var(--font-mono);font-size:0.85rem;padding:2rem 0;">No videos yet. Open the admin panel → Videos tab to add your work.</p>'
     : DATA.videos.map((v,i) => {
-        const hasVideo = !!(extractDriveId(v.afterDriveUrl || '') || extractDriveId(v.beforeDriveUrl || ''));
+        const hasVideo = !!extractDriveId(v.driveUrl || '');
         const isShort = (v.type === 'short');
         const hasPoster = v.posterData && v.posterData.length > 100;
         const thumbHTML = hasPoster
@@ -254,14 +171,20 @@ function render() {
         </div>
       </div>
     </div>`).join(''));
-
-  // Color Grade section
-  renderColorGradeSection();
 }
 
-// Load saved data from localStorage before first render
-// This restores brandLogo, videos, colorGrades, and all other saved fields
-loadFromLocalStorage();
+// Migrate old before/after video data to single driveUrl
+if (DATA.videos) {
+  DATA.videos = DATA.videos.map(function(v) {
+    if (!v.driveUrl) {
+      v.driveUrl = v.afterDriveUrl || v.beforeDriveUrl || '';
+    }
+    delete v.beforeDriveUrl;
+    delete v.afterDriveUrl;
+    return v;
+  });
+}
+
 render();
 
 
@@ -304,11 +227,7 @@ function openLightbox(i) {
   var isShort = (v.type === 'short');
   var frame    = document.getElementById('video-lightbox-frame');
   var lbInner  = document.getElementById('video-lightbox-inner');
-  var tabBar   = document.getElementById('lb-tab-bar');
-  var beforeBtn = document.getElementById('lb-before-btn');
-  var afterBtn  = document.getElementById('lb-after-btn');
-  var hasBefore = !!extractDriveId(v.beforeDriveUrl);
-  var hasAfter  = !!extractDriveId(v.afterDriveUrl);
+  var hasVideo = !!extractDriveId(v.driveUrl || '');
 
   if (isShort) {
     frame.classList.add('type-short');
@@ -318,18 +237,10 @@ function openLightbox(i) {
     lbInner.classList.remove('type-short');
   }
 
-  tabBar.classList.remove('visible');
-
-  if (!hasBefore && !hasAfter) {
+  if (!hasVideo) {
     frame.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:1rem;color:var(--muted);font-family:var(--font-mono);font-size:0.85rem;text-align:center;padding:2rem;">📭<br>No video linked yet.<br><span style="font-size:0.72rem;opacity:0.6;">Open admin panel → Videos tab and paste your Google Drive share link.</span></div>';
-  } else if (hasBefore && hasAfter) {
-    tabBar.classList.add('visible');
-    beforeBtn.className = 'lb-tab-btn active';
-    afterBtn.className  = 'lb-tab-btn inactive';
-    frame.innerHTML = buildDriveEmbed(v.beforeDriveUrl, isShort);
   } else {
-    var url = hasAfter ? v.afterDriveUrl : v.beforeDriveUrl;
-    frame.innerHTML = buildDriveEmbed(url, isShort);
+    frame.innerHTML = buildDriveEmbed(v.driveUrl, isShort);
   }
 
   document.getElementById('video-lightbox-title').textContent = v.title;
@@ -337,146 +248,17 @@ function openLightbox(i) {
   document.body.style.overflow = 'hidden';
 }
 
-function switchLightboxVideo(type, i) {
-  var v = DATA.videos[i];
-  var isShort = (v.type === 'short');
-  var beforeBtn = document.getElementById('lb-before-btn');
-  var afterBtn  = document.getElementById('lb-after-btn');
-  var frame     = document.getElementById('video-lightbox-frame');
-  var url = (type === 'before') ? v.beforeDriveUrl : v.afterDriveUrl;
-  if (!extractDriveId(url)) return;
-  frame.innerHTML = buildDriveEmbed(url, isShort);
-  if (type === 'before') {
-    beforeBtn.className = 'lb-tab-btn active';
-    afterBtn.className  = 'lb-tab-btn inactive';
-  } else {
-    afterBtn.className  = 'lb-tab-btn active';
-    beforeBtn.className = 'lb-tab-btn inactive';
-  }
-}
 
 function closeLightbox() {
   document.getElementById('video-lightbox').classList.remove('open');
   document.getElementById('video-lightbox-frame').innerHTML = '';
-  document.getElementById('lb-tab-bar').classList.remove('visible');
   document.body.style.overflow = '';
 }
-
-// ═══════════════════════════════════════════════════════════════
-// COLOR GRADE SECTION
-// ═══════════════════════════════════════════════════════════════
-
-function renderColorGradeSection() {
-  var container = document.getElementById('colorgrade-container');
-  if (!container) return;
-  var grades = (DATA.colorGrades || []).filter(function(g) {
-    if (_cgFormat === 'all') return true;
-    return g.format === _cgFormat;
-  });
-  if (grades.length === 0) {
-    container.innerHTML = '<p style="color:var(--muted);font-family:var(--font-mono);font-size:0.85rem;padding:2rem 0;">No color grade shots yet. Open admin panel → Color Grade tab to add your work.</p>';
-    return;
-  }
-  // Update grid columns based on format
-  if (_cgFormat === 'portrait') {
-    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 280px))';
-  } else if (_cgFormat === 'landscape') {
-    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(320px, 1fr))';
-  } else {
-    container.style.gridTemplateColumns = '';
-  }
-  container.innerHTML = grades.map(function(g, i) {
-    var origIdx = (DATA.colorGrades || []).indexOf(g);
-    var fmt = g.format || 'landscape';
-    var hasBefore = !!(extractDriveId(g.beforeDriveUrl || ''));
-    var hasAfter  = !!(extractDriveId(g.afterDriveUrl  || ''));
-    var hasAny = hasBefore || hasAfter;
-    var hasPoster = g.posterData && g.posterData.length > 100;
-    var thumbHTML = hasPoster
-      ? '<img src="' + g.posterData + '" alt="' + (g.title||'') + '">'
-      : '<div class="cg-thumb-placeholder">🎨</div>';
-    return '<div class="cg-card' + (fmt==='portrait' ? ' format-portrait' : '') + '"' +
-      (hasAny ? ' onclick="openCGLightbox(' + origIdx + ')"' : ' style="opacity:0.5;"') + '>' +
-      '<div class="cg-thumb ' + fmt + '">' +
-      thumbHTML +
-      '<div class="cg-format-badge">' + (fmt==='portrait'?'9:16':'16:9') + '</div>' +
-      (hasAny ? '<div class="cg-play-overlay"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>' : '') +
-      '</div>' +
-      '<div class="cg-info">' +
-      '<div class="cg-cat">' + (g.cat||'Color Grade') + '</div>' +
-      '<div class="cg-title">' + (g.title||'Untitled') + '</div>' +
-      '<div class="cg-desc">' + (g.desc||'') + '</div>' +
-      '</div></div>';
-  }).join('');
-}
-
-function setCGFormat(fmt) {
-  _cgFormat = fmt;
-  ['all','portrait','landscape'].forEach(function(f) {
-    var btn = document.getElementById('cg-btn-' + f);
-    if (btn) btn.classList.toggle('active', f === fmt);
-  });
-  renderColorGradeSection();
-}
-
-function openCGLightbox(i) {
-  _cgIdx = i;
-  var g = (DATA.colorGrades || [])[i];
-  if (!g) return;
-  var fmt = g.format || 'landscape';
-  var isPortrait = fmt === 'portrait';
-  var frame   = document.getElementById('cg-lightbox-frame');
-  var inner   = document.getElementById('cg-lightbox-inner');
-  var tabBar  = document.getElementById('cg-lb-tab-bar');
-  var hasBefore = !!extractDriveId(g.beforeDriveUrl||'');
-  var hasAfter  = !!extractDriveId(g.afterDriveUrl||'');
-  if (isPortrait) { frame.classList.add('type-short'); inner.classList.add('type-short'); }
-  else            { frame.classList.remove('type-short'); inner.classList.remove('type-short'); }
-  tabBar.classList.remove('visible');
-  if (!hasBefore && !hasAfter) {
-    frame.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:1rem;color:var(--muted);font-family:var(--font-mono);font-size:0.85rem;text-align:center;padding:2rem;">🎨<br>No media linked yet.</div>';
-  } else if (hasBefore && hasAfter) {
-    tabBar.classList.add('visible');
-    document.getElementById('cg-lb-before-btn').className = 'lb-tab-btn active';
-    document.getElementById('cg-lb-after-btn').className  = 'lb-tab-btn inactive';
-    frame.innerHTML = buildDriveEmbed(g.beforeDriveUrl, isPortrait);
-  } else {
-    frame.innerHTML = buildDriveEmbed(hasAfter ? g.afterDriveUrl : g.beforeDriveUrl, isPortrait);
-  }
-  document.getElementById('cg-lightbox-title').textContent = g.title || '';
-  document.getElementById('cg-lightbox').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function switchCGLightbox(type) {
-  var g = (DATA.colorGrades || [])[_cgIdx];
-  if (!g) return;
-  var isPortrait = (g.format||'landscape') === 'portrait';
-  var frame = document.getElementById('cg-lightbox-frame');
-  var url = type === 'before' ? g.beforeDriveUrl : g.afterDriveUrl;
-  if (!extractDriveId(url||'')) return;
-  frame.innerHTML = buildDriveEmbed(url, isPortrait);
-  document.getElementById('cg-lb-before-btn').className = type==='before' ? 'lb-tab-btn active' : 'lb-tab-btn inactive';
-  document.getElementById('cg-lb-after-btn').className  = type==='after'  ? 'lb-tab-btn active' : 'lb-tab-btn inactive';
-}
-
-function closeCGLightbox() {
-  document.getElementById('cg-lightbox').classList.remove('open');
-  document.getElementById('cg-lightbox-frame').innerHTML = '';
-  document.getElementById('cg-lb-tab-bar').classList.remove('visible');
-  document.body.style.overflow = '';
-}
-
-// Close CG lightbox on outside click or Escape
-document.addEventListener('DOMContentLoaded', function() {
-  var cgLb = document.getElementById('cg-lightbox');
-  if (cgLb) cgLb.addEventListener('click', function(e){ if(e.target===this) closeCGLightbox(); });
-});
 
 document.getElementById('video-lightbox').addEventListener('click', function(e) {
   if (e.target === this) closeLightbox();
 });
-document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeLightbox(); closeCGLightbox(); } });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeLightbox(); });
 function openDrawer() {
   document.getElementById('nav-drawer').classList.add('open');
   document.getElementById('nav-overlay').classList.add('open');
@@ -617,7 +399,6 @@ function populateAdmin() {
   set('edit-ejs-template', DATA.emailjsTemplateId);
   renderVideoEditor();
   renderSkillsEditor(); renderProjectsEditor(); renderExpEditor(); renderEduEditor(); renderTestiEditor();
-  renderColorGradeEditor();
 }
 
 
@@ -626,15 +407,11 @@ function renderVideoEditor() {
   if (!c) return;
   c.innerHTML = '';
   DATA.videos.forEach((v, i) => {
-    const hasBefore = !!extractDriveId(v.beforeDriveUrl || '');
-    const hasAfter  = !!extractDriveId(v.afterDriveUrl  || '');
+    const hasDrive  = !!extractDriveId(v.driveUrl || '');
     const hasPoster = v.posterData && v.posterData.length > 100;
 
-    const beforeIdHtml = hasBefore
-      ? '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID detected: ' + extractDriveId(v.beforeDriveUrl) + '</div>'
-      : '';
-    const afterIdHtml = hasAfter
-      ? '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID detected: ' + extractDriveId(v.afterDriveUrl) + '</div>'
+    const driveIdHtml = hasDrive
+      ? '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID detected: ' + extractDriveId(v.driveUrl) + '</div>'
       : '';
 
     c.innerHTML +=
@@ -645,15 +422,9 @@ function renderVideoEditor() {
       '</div>' +
 
       '<div class="form-group">' +
-      '<label>🎞️ Before Edit — Google Drive Share Link</label>' +
-      '<input type="text" id="vid-before-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + (v.beforeDriveUrl || '') + '" oninput="previewDriveLink(&apos;before&apos;,' + i + ')">' +
-      '<div id="vid-before-preview-' + i + '">' + beforeIdHtml + '</div>' +
-      '</div>' +
-
-      '<div class="form-group">' +
-      '<label>✨ After Edit — Google Drive Share Link</label>' +
-      '<input type="text" id="vid-after-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + (v.afterDriveUrl || '') + '" oninput="previewDriveLink(&apos;after&apos;,' + i + ')">' +
-      '<div id="vid-after-preview-' + i + '">' + afterIdHtml + '</div>' +
+      '<label>🎬 Video — Google Drive Share Link</label>' +
+      '<input type="text" id="vid-drive-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + (v.driveUrl || '') + '" oninput="previewDriveLink(&apos;drive&apos;,' + i + ')">' +
+      '<div id="vid-drive-preview-' + i + '">' + driveIdHtml + '</div>' +
       '</div>' +
 
       '<div class="form-group">' +
@@ -684,8 +455,8 @@ function renderVideoEditor() {
 }
 
 function previewDriveLink(type, i) {
-  var inputId = 'vid-' + type + '-url-' + i;
-  var previewId = 'vid-' + type + '-preview-' + i;
+  var inputId = (type === 'drive') ? 'vid-drive-url-' + i : 'vid-' + type + '-url-' + i;
+  var previewId = (type === 'drive') ? 'vid-drive-preview-' + i : 'vid-' + type + '-preview-' + i;
   var url = document.getElementById(inputId).value.trim();
   var id = extractDriveId(url);
   var previewEl = document.getElementById(previewId);
@@ -713,7 +484,7 @@ function handlePosterFile(event, i) {
 function removeVideo(i) { DATA.videos.splice(i, 1); renderVideoEditor(); }
 
 function addVideo() {
-  DATA.videos.push({title:'My Video',cat:'Category',desc:'Describe this video.',tags:['CapCut'],type:'video',beforeDriveUrl:'',afterDriveUrl:'',posterData:''});
+  DATA.videos.push({title:'My Video',cat:'Category',desc:'Describe this video.',tags:['CapCut'],type:'video',driveUrl:'',posterData:''});
   renderVideoEditor();
   setTimeout(() => {
     const cards = document.querySelectorAll('#videos-editor .admin-card');
@@ -781,98 +552,7 @@ function renderTestiEditor() {
 function removeTesti(i) { DATA.testimonials.splice(i,1); renderTestiEditor(); }
 function addTesti() { DATA.testimonials.push({text:'Great work!',name:'Client Name',role:'Job Title',initials:'CN'}); renderTestiEditor(); }
 
-// ── Color Grade Admin Editor ────────────────────────────────────
-function renderColorGradeEditor() {
-  var c = document.getElementById('colorgrade-editor');
-  if (!c) return;
-  if (!DATA.colorGrades) DATA.colorGrades = [];
-  c.innerHTML = '';
-  DATA.colorGrades.forEach(function(g, i) {
-    var hasBefore = !!extractDriveId(g.beforeDriveUrl||'');
-    var hasAfter  = !!extractDriveId(g.afterDriveUrl||'');
-    var hasPoster = g.posterData && g.posterData.length > 100;
-    var beforeIdHtml = hasBefore ? '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID: ' + extractDriveId(g.beforeDriveUrl) + '</div>' : '';
-    var afterIdHtml  = hasAfter  ? '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID: ' + extractDriveId(g.afterDriveUrl) + '</div>' : '';
-    c.innerHTML +=
-      '<div class="admin-card" id="cg-card-' + i + '">' +
-      '<div class="admin-card-header">' +
-      '<span class="admin-card-title">Grade ' + (i+1) + ': ' + (g.title||'Untitled') + '</span>' +
-      '<button class="admin-btn-remove" onclick="removeColorGrade(' + i + ')">Remove</button>' +
-      '</div>' +
-
-      '<div class="form-row">' +
-      '<div class="form-group"><label>Category</label><input type="text" id="cg-cat-' + i + '" value="' + (g.cat||'Color Grade') + '"></div>' +
-      '<div class="form-group"><label>Title</label><input type="text" id="cg-title-' + i + '" value="' + (g.title||'') + '"></div>' +
-      '</div>' +
-
-      '<div class="form-group"><label>📐 Format</label>' +
-      '<select id="cg-format-' + i + '" style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:2px;padding:0.8rem 1rem;color:var(--text);font-family:var(--font-body);font-size:0.88rem;outline:none;">' +
-      '<option value="landscape"' + ((g.format||'landscape')==='landscape' ? ' selected' : '') + '>🖥️ Landscape (16:9)</option>' +
-      '<option value="portrait"'  + (g.format==='portrait'               ? ' selected' : '') + '>📱 Portrait (9:16)</option>' +
-      '</select></div>' +
-
-      '<div class="form-group"><label>🎞️ Before Grade — Google Drive Share Link</label>' +
-      '<input type="text" id="cg-before-url-' + i + '" placeholder="Paste Google Drive share link..." value="' + (g.beforeDriveUrl||'') + '" oninput="previewCGLink(\'before\',' + i + ')">' +
-      '<div id="cg-before-preview-' + i + '">' + beforeIdHtml + '</div>' +
-      '</div>' +
-
-      '<div class="form-group"><label>✨ After Grade — Google Drive Share Link</label>' +
-      '<input type="text" id="cg-after-url-' + i + '" placeholder="Paste Google Drive share link..." value="' + (g.afterDriveUrl||'') + '" oninput="previewCGLink(\'after\',' + i + ')">' +
-      '<div id="cg-after-preview-' + i + '">' + afterIdHtml + '</div>' +
-      '</div>' +
-
-      '<div class="form-group"><label>🖼️ Thumbnail (optional)</label>' +
-      '<div class="vid-upload-area" id="cg-poster-area-' + i + '" onclick="document.getElementById(\'cg-poster-\'+' + i + '+\'\').click()">' +
-      (hasPoster ? '<span style="color:var(--accent)">✅ Thumbnail uploaded</span>' : '<span>🖼️ Click to upload thumbnail (JPG/PNG)</span>') +
-      '</div>' +
-      '<input type="file" id="cg-poster-' + i + '" accept="image/*" style="display:none" onchange="handleCGPosterFile(event,' + i + ')"></div>' +
-
-      '<div class="form-group"><label>Description</label><textarea id="cg-desc-' + i + '" rows="2">' + (g.desc||'') + '</textarea></div>' +
-      '</div>';
-  });
-}
-
-function previewCGLink(type, i) {
-  var url = (document.getElementById('cg-' + type + '-url-' + i)||{}).value || '';
-  var id = extractDriveId(url);
-  var el = document.getElementById('cg-' + type + '-preview-' + i);
-  if (!el) return;
-  if (id) {
-    el.innerHTML = '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID: ' + id + '</div>';
-  } else if (url.length > 0) {
-    el.innerHTML = '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:#e74c3c;">⚠️ Could not detect Drive ID.</div>';
-  } else { el.innerHTML = ''; }
-}
-
-function handleCGPosterFile(event, i) {
-  var file = event.target.files[0];
-  if (!file) return;
-  var area = document.getElementById('cg-poster-area-' + i);
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    DATA.colorGrades[i].posterData = e.target.result;
-    if (area) area.innerHTML = '<span style="color:var(--accent)">✅ Thumbnail ready — ' + file.name + '</span>';
-  };
-  reader.readAsDataURL(file);
-}
-
-function removeColorGrade(i) {
-  if (!DATA.colorGrades) return;
-  DATA.colorGrades.splice(i, 1);
-  renderColorGradeEditor();
-}
-
-function addColorGrade() {
-  if (!DATA.colorGrades) DATA.colorGrades = [];
-  DATA.colorGrades.push({cat:'Color Grade', title:'New Grade Shot', desc:'', format:'landscape', beforeDriveUrl:'', afterDriveUrl:'', posterData:''});
-  renderColorGradeEditor();
-  setTimeout(function(){
-    var cards = document.querySelectorAll('#colorgrade-editor .admin-card');
-    if (cards.length) cards[cards.length-1].scrollIntoView({behavior:'smooth'});
-  }, 100);
-}
-
-
+function applyChanges() {
   DATA.name = get('edit-name');
   DATA.badge = get('edit-badge');
   DATA.h1line1 = get('edit-h1-line1'); DATA.h1line2 = get('edit-h1-line2'); DATA.h1line3 = get('edit-h1-line3');
@@ -892,8 +572,7 @@ function addColorGrade() {
   DATA.emailjsTemplateId = get('edit-ejs-template');
 
   DATA.videos = DATA.videos.map((v,i)=>({
-    beforeDriveUrl: (document.getElementById('vid-before-url-'+i) ? document.getElementById('vid-before-url-'+i).value.trim() : (v.beforeDriveUrl||'')),
-    afterDriveUrl:  (document.getElementById('vid-after-url-'+i)  ? document.getElementById('vid-after-url-'+i).value.trim()  : (v.afterDriveUrl||'')),
+    driveUrl: (document.getElementById('vid-drive-url-'+i) ? document.getElementById('vid-drive-url-'+i).value.trim() : (v.driveUrl||'')),
     posterData: v.posterData || '',
     type: (document.getElementById('vid-type-'+i) ? document.getElementById('vid-type-'+i).value : (v.type||'video')),
     cat: get('vid-cat-'+i),
@@ -921,20 +600,6 @@ function addColorGrade() {
     text: get(`ts-text-${i}`), name: get(`ts-name-${i}`),
     role: get(`ts-role-${i}`), initials: get(`ts-init-${i}`)
   }));
-
-  // Save color grades
-  if (!DATA.colorGrades) DATA.colorGrades = [];
-  DATA.colorGrades = DATA.colorGrades.map(function(g, i) {
-    return {
-      cat:    get('cg-cat-' + i)    || g.cat    || 'Color Grade',
-      title:  get('cg-title-' + i)  || g.title  || 'Untitled',
-      desc:   get('cg-desc-' + i)   || '',
-      format: (document.getElementById('cg-format-' + i) ? document.getElementById('cg-format-' + i).value : (g.format||'landscape')),
-      beforeDriveUrl: (document.getElementById('cg-before-url-' + i) ? document.getElementById('cg-before-url-' + i).value.trim() : (g.beforeDriveUrl||'')),
-      afterDriveUrl:  (document.getElementById('cg-after-url-'  + i) ? document.getElementById('cg-after-url-'  + i).value.trim() : (g.afterDriveUrl||'')),
-      posterData: g.posterData || ''
-    };
-  });
 
   render();
   saveToLocalStorage();
@@ -1008,14 +673,8 @@ async function compressDataImages(data) {
     const v = d.videos[i];
     if (v.posterData && v.posterData.startsWith('data:image'))
       v.posterData = await compressImage(v.posterData, 600, 0.60);
-    delete v.videoData; delete v.beforeData;
-    delete v.fileName;  delete v.beforeFileName; delete v.mimeType;
-  }
-
-  for (let i = 0; i < (d.colorGrades||[]).length; i++) {
-    const g = d.colorGrades[i];
-    if (g.posterData && g.posterData.startsWith('data:image'))
-      g.posterData = await compressImage(g.posterData, 600, 0.60);
+    delete v.videoData;
+    delete v.fileName; delete v.mimeType;
   }
 
   return d;
