@@ -209,7 +209,6 @@
     <li><a href="#about">About</a></li>
     <li><a href="#skills">Skills</a></li>
     <li><a href="#videos">Videos</a></li>
-    <li><a href="#colorgrade">Color Grade</a></li>
     <li><a href="#experience">Experience</a></li>
     <li><a href="#contact">Contact</a></li>
   </ul>
@@ -232,8 +231,7 @@
   <ul class="nav-drawer-links">
     <li><a href="#about" onclick="closeDrawer()"><span class="link-num">01</span>About</a></li>
     <li><a href="#skills" onclick="closeDrawer()"><span class="link-num">02</span>Skills</a></li>
-    <li><a href="#videos" onclick="closeDrawer()"><span class="link-num">03</span>Videos</a></li>
-    <li><a href="#colorgrade" onclick="closeDrawer()"><span class="link-num">04</span>Color Grade</a></li>
+    <li><a href="#videos" onclick="closeDrawer()"><span class="link-num">04</span>Videos</a></li>
     <li><a href="#experience" onclick="closeDrawer()"><span class="link-num">05</span>Experience</a></li>
     <li><a href="#contact" onclick="closeDrawer()"><span class="link-num">06</span>Contact</a></li>
   </ul>
@@ -414,34 +412,6 @@
     </div>
     <div class="video-lightbox-frame" id="video-lightbox-frame"></div>
     <div class="video-lightbox-title" id="video-lightbox-title"></div>
-  </div>
-</div>
-
-<!-- COLOR GRADE SECTION -->
-<section id="colorgrade">
-  <div class="fade-up visible">
-    <div class="section-eyebrow">Visual Craft</div>
-    <h2 class="section-title">Color <em style="font-style:italic;color:var(--accent)">Grade</em></h2>
-    <p class="section-sub" id="cg-section-sub">A showcase of before &amp; after color grading — raw to cinematic.</p>
-  </div>
-  <div id="cg-format-toggle" style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1.8rem;flex-wrap:wrap;">
-    <button class="cg-fmt-btn active" id="cg-btn-all" onclick="setCGFormat('all')">All</button>
-    <button class="cg-fmt-btn" id="cg-btn-portrait" onclick="setCGFormat('portrait')">📱 Portrait</button>
-    <button class="cg-fmt-btn" id="cg-btn-landscape" onclick="setCGFormat('landscape')">🖥️ Landscape</button>
-  </div>
-  <div class="cg-grid fade-up visible" id="colorgrade-container"></div>
-</section>
-
-<!-- COLOR GRADE LIGHTBOX -->
-<div class="video-lightbox" id="cg-lightbox">
-  <div class="video-lightbox-inner" id="cg-lightbox-inner">
-    <button class="video-lightbox-close" onclick="closeCGLightbox()">✕</button>
-    <div class="lb-tab-bar" id="cg-lb-tab-bar">
-      <button class="lb-tab-btn active" id="cg-lb-before-btn" onclick="switchCGLightbox('before')">⬅ BEFORE GRADE</button>
-      <button class="lb-tab-btn inactive" id="cg-lb-after-btn" onclick="switchCGLightbox('after')">AFTER GRADE ➡</button>
-    </div>
-    <div class="video-lightbox-frame" id="cg-lightbox-frame"></div>
-    <div class="video-lightbox-title" id="cg-lightbox-title"></div>
   </div>
 </div>
 
@@ -715,7 +685,6 @@
       <button class="admin-tab" onclick="switchTab('education')">Education</button>
       <button class="admin-tab" onclick="switchTab('testimonials')">Reviews</button>
       <button class="admin-tab" onclick="switchTab('contact')">Contact</button>
-      <button class="admin-tab" onclick="switchTab('colorgrade')" style="background:rgba(232,197,71,0.08);border-color:rgba(232,197,71,0.3);color:var(--accent);">🎨 Color Grade</button>
       <button class="admin-tab" onclick="switchTab('publish')" style="background:rgba(46,204,113,0.08);border-color:rgba(46,204,113,0.35);color:#2ecc71;">🚀 Publish</button>
     </div>
 
@@ -874,18 +843,6 @@
       <div class="form-group"><label>EmailJS Template ID</label><input type="text" id="edit-ejs-template" placeholder="e.g. template_xxxxxx"></div>
     </div>
 
-    <!-- COLOR GRADE -->
-    <div class="admin-section" id="tab-colorgrade">
-      <div class="video-upload-note">
-        <strong>🎨 COLOR GRADE SHOTS:</strong><br>
-        Add before/after color grade images or videos via Google Drive links.<br>
-        Choose <strong>Portrait</strong> (9:16 vertical) or <strong>Landscape</strong> (16:9 horizontal) for each shot.<br>
-        <span style="color:var(--muted);">Tip: Upload thumbnails to show a still preview of the grade.</span>
-      </div>
-      <div id="colorgrade-editor"></div>
-      <button class="admin-btn-add" onclick="addColorGrade()">+ Add Color Grade Shot</button>
-    </div>
-
     <!-- PUBLISH / SYNC -->
     <div class="admin-section active" id="tab-publish">
       <div style="background:rgba(46,204,113,0.07);border:1px solid rgba(46,204,113,0.3);border-radius:4px;padding:1rem 1.2rem;margin-bottom:1.4rem;font-family:var(--font-mono);font-size:0.73rem;color:#2ecc71;line-height:1.8;letter-spacing:0.03em;">
@@ -935,10 +892,6 @@
 <!-- TOP PROGRESS BAR SCRIPT -->
 
 
-  <!-- Intro fix: always reset so intro plays on every fresh page load/refresh -->
-  <script>
-    try { sessionStorage.removeItem('intro_seen'); sessionStorage.removeItem('portfolioIntroSeen'); sessionStorage.removeItem('introPlayed'); } catch(e){}
-  </script>
   <!-- Portfolio scripts (load order matters) -->
   <script src="protection.js"></script>
   <script src="data.js"></script>
