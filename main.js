@@ -179,7 +179,11 @@ function render() {
   // COLOR GRADE
   var cgData = DATA.colorGrades || [];
   var cgSection = document.getElementById('colorgrade');
-  if (cgSection) cgSection.style.display = cgData.length === 0 ? 'none' : '';
+  var cgNavLink    = document.getElementById('nav-cg-link');
+  var cgDrawerLink = document.getElementById('drawer-cg-link');
+  if (cgSection)    cgSection.style.display    = cgData.length === 0 ? 'none' : '';
+  if (cgNavLink)    cgNavLink.style.display    = cgData.length === 0 ? 'none' : '';
+  if (cgDrawerLink) cgDrawerLink.style.display = cgData.length === 0 ? 'none' : '';
   setHTML('colorgrade-container', cgData.map((cg, i) => {
     var hasBefore = cg.beforeData && cg.beforeData.length > 100;
     var hasAfter  = cg.afterData  && cg.afterData.length > 100;
