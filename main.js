@@ -89,60 +89,9 @@ function render() {
   const videosHTML = DATA.videos.length === 0
     ? '<p style="color:var(--muted);font-family:var(--font-mono);font-size:0.85rem;padding:2rem 0;">No videos yet. Open the admin panel → Videos tab to add your work.</p>'
     : DATA.videos.map((v,i) => {
-        const isBeforeAfter = (v.type === 'beforeafter');
-        const isShort = (v.type === 'short');
-        const isThumbnailOnly = !!v.thumbnailOnly;
         const hasVideo = !!extractDriveId(v.driveUrl || '');
+        const isShort = (v.type === 'short');
         const hasPoster = v.posterData && v.posterData.length > 100;
-        const hasBeforeData = v.beforeData && v.beforeData.length > 100;
-        const hasAfterData  = v.afterData  && v.afterData.length  > 100;
-
-        // ── Before/After slider card ──
-        if (isBeforeAfter) {
-          if (!hasBeforeData && !hasAfterData) {
-            return '<div class="video-card" style="opacity:0.5;pointer-events:none;">' +
-              '<div class="video-thumb" style="display:flex;align-items:center;justify-content:center;background:#111;"><div class="video-thumb-placeholder">🔀</div></div>' +
-              '<div class="video-info"><div class="video-cat">' + v.cat + '</div><div class="video-title">' + v.title + '</div><div class="video-desc">Upload Before &amp; After images in admin panel</div></div></div>';
-          }
-          const beforeSrc = hasBeforeData ? v.beforeData : '';
-          const afterSrc  = hasAfterData  ? v.afterData  : '';
-          return '<div class="video-card ba-card" data-ba-idx="' + i + '">' +
-            '<div class="ba-slider-wrap">' +
-              '<div class="ba-img ba-after" style="background-image:url(\'' + afterSrc + '\')"></div>' +
-              '<div class="ba-img ba-before" style="background-image:url(\'' + beforeSrc + '\');clip-path:inset(0 50% 0 0)"></div>' +
-              '<div class="ba-divider">' +
-                '<div class="ba-handle"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M8 5l-5 7 5 7M16 5l5 7-5 7" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>' +
-              '</div>' +
-              '<div class="ba-label ba-label-before">BEFORE</div>' +
-              '<div class="ba-label ba-label-after">AFTER</div>' +
-            '</div>' +
-            '<div class="video-info">' +
-              '<div class="video-cat">' + v.cat + '</div>' +
-              '<div class="video-title">' + v.title + '</div>' +
-              '<div class="video-desc">' + v.desc + '</div>' +
-              '<div class="video-tags">' + (v.tags||[]).map(t => '<span class="video-tag">' + t + '</span>').join('') + '</div>' +
-            '</div></div>';
-        }
-
-        // ── Thumbnail-only card (static image, no play, no lightbox) ──
-        if (isThumbnailOnly) {
-          const thumbSrc = hasPoster ? v.posterData : '';
-          return '<div class="video-card thumbnail-only-card">' +
-            '<div class="video-thumb">' +
-              (hasPoster
-                ? '<img src="' + thumbSrc + '" alt="' + v.title + '" style="width:100%;height:100%;object-fit:cover;">'
-                : '<div class="video-thumb-placeholder">🖼️</div>') +
-              '<div class="ba-label ba-label-after" style="top:0.6rem;left:0.6rem;right:auto;bottom:auto;">RESULT</div>' +
-            '</div>' +
-            '<div class="video-info">' +
-              '<div class="video-cat">' + v.cat + '</div>' +
-              '<div class="video-title">' + v.title + '</div>' +
-              '<div class="video-desc">' + v.desc + '</div>' +
-              '<div class="video-tags">' + (v.tags||[]).map(t => '<span class="video-tag">' + t + '</span>').join('') + '</div>' +
-            '</div></div>';
-        }
-
-        // ── Standard video card ──
         const thumbHTML = hasPoster
           ? '<img src="' + v.posterData + '" alt="' + v.title + '" style="width:100%;height:100%;object-fit:cover;">'
           : '<div class="video-thumb-placeholder">' + (isShort ? '📱' : '🎬') + '</div>';
@@ -163,9 +112,12 @@ function render() {
           '</div></div>';
       }).join('');
   setHTML('videos-container', videosHTML);
-  initBeforeAfterSliders();
 
   const tagColors = ['tag-gold','tag-red','tag-blue','tag-white'];
+  // Always replace Storytelling with Thumbnail Designer regardless of data.js
+  DATA.tags = DATA.tags.map(function(t) {
+    return t.trim().toLowerCase() === 'storytelling' ? 'Thumbnail Designer' : t;
+  });
   setHTML('hero-tags', DATA.tags.map((t,i)=>`<span class="tag ${tagColors[i%4]}">${t}</span>`).join(''));
 
   setHTML('about-pills', DATA.pills.map(p=>`<span class="pill">${p}</span>`).join(''));
@@ -223,6 +175,311 @@ function render() {
         </div>
       </div>
     </div>`).join(''));
+
+  // COLOR GRADE
+  var cgData = DATA.colorGrades || [];
+  var cgSection = document.getElementById('colorgrade');
+  if (cgSection) cgSection.style.display = cgData.length === 0 ? 'none' : '';
+  setHTML('colorgrade-container', cgData.map((cg, i) => {
+    var hasBefore = cg.beforeData && cg.beforeData.length > 100;
+    var hasAfter  = cg.afterData  && cg.afterData.length > 100;
+    var sliderHtml = '';
+    if (hasBefore || hasAfter) {
+      sliderHtml = '<div class="cg-slider-wrap" id="cg-slider-' + i + '">' +
+        (hasAfter  ? '<img class="cg-img-after"  src="' + cg.afterData  + '" alt="After">'  : '') +
+        (hasBefore ? '<img class="cg-img-before" src="' + cg.beforeData + '" alt="Before">' : '') +
+        '<div class="cg-divider-line" id="cg-line-' + i + '"></div>' +
+        '<div class="cg-handle" id="cg-handle-' + i + '">' +
+          '<svg viewBox="0 0 20 20"><path d="M7 4l-4 6 4 6M13 4l4 6-4 6"/></svg>' +
+        '</div>' +
+        '<span class="cg-label-before">BEFORE</span>' +
+        '<span class="cg-label-after">AFTER</span>' +
+        '</div>';
+    } else {
+      sliderHtml = '<div class="cg-placeholder">🎨<span>Upload Before &amp; After images in admin panel</span></div>';
+    }
+    var tagsHtml = (cg.tags||[]).map(t => '<span class="cg-tag">' + t + '</span>').join('');
+    var hasImages = (cg.beforeData && cg.beforeData.length > 100) || (cg.afterData && cg.afterData.length > 100);
+    var fullscreenBtn = hasImages
+      ? '<button class="cg-fullscreen-btn" title="View fullscreen" onclick="openCGLightbox(' + i + ',\'after\')" style="position:absolute;top:0.6rem;left:0.6rem;z-index:7;">' +
+        '<svg viewBox="0 0 14 14"><path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9"/></svg>' +
+        '</button>'
+      : '';
+    return '<div class="cg-card" style="position:relative;">' +
+      sliderHtml +
+      fullscreenBtn +
+      (cg.title ? '<div class="cg-card-title">' + cg.title + '</div>' : '') +
+      (cg.desc  ? '<div class="cg-card-desc">'  + cg.desc  + '</div>' : '') +
+      (tagsHtml ? '<div class="cg-tags">' + tagsHtml + '</div>' : '') +
+      '</div>';
+  }).join(''));
+
+  // Init sliders + layout after DOM update
+  setTimeout(function() { initColorGradeSliders(); applyColorGradeLayoutClass(); applyDesignWorkLayoutClass(); }, 50);
+
+  // DESIGN WORK
+  var dwData = DATA.designWork || [];
+  var dwSection = document.getElementById('designwork');
+  var dwNavLink  = document.getElementById('nav-dw-link');
+  var dwDrawerLink = document.getElementById('drawer-dw-link');
+  if (dwSection) dwSection.style.display = dwData.length === 0 ? 'none' : '';
+  if (dwNavLink)    dwNavLink.style.display    = dwData.length === 0 ? 'none' : '';
+  if (dwDrawerLink) dwDrawerLink.style.display = dwData.length === 0 ? 'none' : '';
+  var dwLayout = DATA.dwLayout || 'landscape';
+  setHTML('designwork-container', dwData.map(function(dw, i) {
+    var hasPoster = dw.posterData && dw.posterData.length > 100;
+    var badgeClass = dwLayout === 'portrait' ? 'portrait' : 'landscape';
+    var badgeText  = dwLayout === 'portrait' ? '9:16' : '16:9';
+    var posterHtml = hasPoster
+      ? '<img src="' + dw.posterData + '" alt="' + (dw.title||'Poster') + '">'
+      : '<div class="dw-poster-placeholder">🖼️<span>Upload poster in admin panel</span></div>';
+    var tagsHtml = (dw.tags||[]).map(function(t){ return '<span class="dw-tag">' + t + '</span>'; }).join('');
+    var clickAttr = hasPoster ? ' onclick="openDWLightbox(' + i + ')"' : '';
+    return '<div class="dw-card"' + clickAttr + (hasPoster ? '' : ' style="cursor:default;"') + '>' +
+      '<div class="dw-poster-wrap">' +
+        posterHtml +
+        '<span class="dw-poster-badge ' + badgeClass + '">' + badgeText + '</span>' +
+      '</div>' +
+      (dw.title ? '<div class="dw-card-title">' + dw.title + '</div>' : '') +
+      (dw.desc  ? '<div class="dw-card-desc">'  + dw.desc  + '</div>' : '') +
+      (tagsHtml ? '<div class="dw-tags">' + tagsHtml + '</div>' : '') +
+      '</div>';
+  }).join(''));
+}
+
+/* ── COLOR GRADE SLIDER ── */
+function initColorGradeSliders() {
+  var cgData = DATA.colorGrades || [];
+  cgData.forEach(function(cg, i) {
+    var wrap   = document.getElementById('cg-slider-' + i);
+    if (!wrap) return;
+    var before = wrap.querySelector('.cg-img-before');
+    var line   = document.getElementById('cg-line-'   + i);
+    var handle = document.getElementById('cg-handle-' + i);
+    if (!before || !line || !handle) return;
+
+    function setPos(pct) {
+      pct = Math.max(2, Math.min(98, pct));
+      before.style.clipPath = 'inset(0 ' + (100 - pct) + '% 0 0)';
+      line.style.left   = pct + '%';
+      handle.style.left = pct + '%';
+    }
+    setPos(50);
+
+    function onMove(clientX) {
+      var rect = wrap.getBoundingClientRect();
+      var pct  = ((clientX - rect.left) / rect.width) * 100;
+      setPos(pct);
+    }
+
+    // Mouse
+    wrap.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      onMove(e.clientX);
+      function mm(ev) { onMove(ev.clientX); }
+      function mu() { document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); }
+      document.addEventListener('mousemove', mm);
+      document.addEventListener('mouseup', mu);
+    });
+
+    // Touch
+    wrap.addEventListener('touchstart', function(e) {
+      onMove(e.touches[0].clientX);
+    }, {passive: true});
+    wrap.addEventListener('touchmove', function(e) {
+      onMove(e.touches[0].clientX);
+    }, {passive: true});
+  });
+}
+
+/* ── COLOR GRADE ADMIN EDITOR ── */
+function renderColorGradeEditor() {
+  var c = document.getElementById('colorgrade-editor');
+  if (!c) return;
+  c.innerHTML = '';
+  var cgData = DATA.colorGrades || [];
+  cgData.forEach(function(cg, i) {
+    var hasBefore = cg.beforeData && cg.beforeData.length > 100;
+    var hasAfter  = cg.afterData  && cg.afterData.length > 100;
+    c.innerHTML +=
+      '<div class="admin-card" id="cg-card-' + i + '">' +
+      '<div class="admin-card-header">' +
+      '<span class="admin-card-title">Grade ' + (i+1) + ': ' + (cg.title||'Untitled') + '</span>' +
+      '<button class="admin-btn-remove" onclick="removeColorGrade(' + i + ')">Remove</button>' +
+      '</div>' +
+
+      // Upload row
+      '<div class="cg-upload-row">' +
+
+      // BEFORE box
+      '<div>' +
+      '<div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--muted);margin-bottom:0.4rem;letter-spacing:0.04em;">BEFORE (Raw)</div>' +
+      '<div class="cg-upload-box' + (hasBefore ? ' has-img' : '') + '" onclick="document.getElementById(\'cg-before-' + i + '\').click()" id="cg-before-box-' + i + '">' +
+      (hasBefore ? '<img src="' + cg.beforeData + '" alt="Before">' : '') +
+      '<span class="cg-upload-tag before">BEFORE</span>' +
+      '<span class="cg-upload-label">' + (hasBefore ? '✅ Click to replace' : '🖼️ Click to upload') + '</span>' +
+      '</div>' +
+      '<input type="file" id="cg-before-' + i + '" accept="image/*" style="display:none" onchange="handleCGFile(event,' + i + ',\'before\')">' +
+      '</div>' +
+
+      // AFTER box
+      '<div>' +
+      '<div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--muted);margin-bottom:0.4rem;letter-spacing:0.04em;">AFTER (Graded)</div>' +
+      '<div class="cg-upload-box' + (hasAfter ? ' has-img' : '') + '" onclick="document.getElementById(\'cg-after-' + i + '\').click()" id="cg-after-box-' + i + '">' +
+      (hasAfter ? '<img src="' + cg.afterData + '" alt="After">' : '') +
+      '<span class="cg-upload-tag after">AFTER</span>' +
+      '<span class="cg-upload-label">' + (hasAfter ? '✅ Click to replace' : '🎨 Click to upload') + '</span>' +
+      '</div>' +
+      '<input type="file" id="cg-after-' + i + '" accept="image/*" style="display:none" onchange="handleCGFile(event,' + i + ',\'after\')">' +
+      '</div>' +
+
+      '</div>' + // end upload-row
+
+      '<div class="form-row">' +
+      '<div class="form-group"><label>Title</label><input type="text" id="cg-title-' + i + '" value="' + (cg.title||'') + '" placeholder="e.g. Golden Hour Grade"></div>' +
+      '<div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="cg-tags-' + i + '" value="' + (cg.tags||[]).join(', ') + '" placeholder="DaVinci Resolve, Teal & Orange"></div>' +
+      '</div>' +
+      '<div class="form-group"><label>Description (optional)</label><textarea id="cg-desc-' + i + '" rows="2" placeholder="Describe the look, mood, or technique...">' + (cg.desc||'') + '</textarea></div>' +
+
+      '</div>'; // end admin-card
+  });
+}
+
+function handleCGFile(event, i, side) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    if (!DATA.colorGrades) DATA.colorGrades = [];
+    if (side === 'before') {
+      DATA.colorGrades[i].beforeData = e.target.result;
+    } else {
+      DATA.colorGrades[i].afterData = e.target.result;
+    }
+    renderColorGradeEditor();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeColorGrade(i) {
+  if (!DATA.colorGrades) return;
+  DATA.colorGrades.splice(i, 1);
+  renderColorGradeEditor();
+}
+
+function addColorGrade() {
+  if (!DATA.colorGrades) DATA.colorGrades = [];
+  DATA.colorGrades.push({ title: 'New Grade', desc: '', tags: [], beforeData: '', afterData: '' });
+  renderColorGradeEditor();
+  setTimeout(function() {
+    var cards = document.querySelectorAll('#colorgrade-editor .admin-card');
+    if (cards.length) cards[cards.length-1].scrollIntoView({ behavior: 'smooth' });
+  }, 100);
+}
+
+// Layout picker
+function applyCGLayout(val) {
+  DATA.cgLayout = val || 'landscape';
+  applyColorGradeLayoutClass();
+  var bar = document.getElementById('cg-layout-preview-bar');
+  if (bar) bar.style.display = 'block';
+  render();
+}
+
+function applyColorGradeLayoutClass() {
+  var grid = document.getElementById('colorgrade-container');
+  if (!grid) return;
+  var layout = DATA.cgLayout || 'landscape';
+  // Only two classes: default (landscape) or layout-portrait
+  grid.className = 'colorgrade-grid fade-up';
+  if (layout === 'portrait') grid.classList.add('layout-portrait');
+  // Sync radio buttons
+  var radios = document.querySelectorAll('input[name="cg-layout"]');
+  radios.forEach(function(r) { r.checked = (r.value === layout); });
+}
+
+/* ── DESIGN WORK ── */
+function applyDWLayout(val) {
+  DATA.dwLayout = val || 'landscape';
+  applyDesignWorkLayoutClass();
+  var bar = document.getElementById('dw-layout-preview-bar');
+  if (bar) bar.style.display = 'block';
+  render();
+}
+
+function applyDesignWorkLayoutClass() {
+  var grid = document.getElementById('designwork-container');
+  if (!grid) return;
+  var layout = DATA.dwLayout || 'landscape';
+  grid.className = 'dw-grid fade-up';
+  if (layout === 'portrait') grid.classList.add('dw-layout-portrait');
+  // Sync radio buttons
+  var radios = document.querySelectorAll('input[name="dw-layout"]');
+  radios.forEach(function(r) { r.checked = (r.value === layout); });
+}
+
+function renderDesignWorkEditor() {
+  var c = document.getElementById('designwork-editor');
+  if (!c) return;
+  c.innerHTML = '';
+  var dwData = DATA.designWork || [];
+  var layout = DATA.dwLayout || 'landscape';
+  dwData.forEach(function(dw, i) {
+    var hasPoster = dw.posterData && dw.posterData.length > 100;
+    var isPortrait = layout === 'portrait';
+    c.innerHTML +=
+      '<div class="admin-card" id="dw-card-' + i + '">' +
+      '<div class="admin-card-header">' +
+      '<span class="admin-card-title">Poster ' + (i+1) + ': ' + (dw.title||'Untitled') + '</span>' +
+      '<button class="admin-btn-remove" onclick="removeDesignWork(' + i + ')">Remove</button>' +
+      '</div>' +
+
+      // Upload box
+      '<div style="margin-bottom:1rem;">' +
+      '<div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--muted);margin-bottom:0.5rem;letter-spacing:0.04em;">POSTER IMAGE (' + (isPortrait ? '9:16 Portrait' : '16:9 Landscape') + ')</div>' +
+      '<div class="dw-upload-box' + (isPortrait ? ' portrait-preview' : '') + (hasPoster ? ' has-img' : '') + '" onclick="document.getElementById(\'dw-poster-' + i + '\').click()" id="dw-poster-box-' + i + '" style="' + (isPortrait ? 'max-width:180px;' : '') + '">' +
+      (hasPoster ? '<img src="' + dw.posterData + '" alt="Poster">' : '') +
+      '<span class="dw-upload-label">' + (hasPoster ? '✅ Click to replace' : '🖼️ Click to upload poster') + '</span>' +
+      '</div>' +
+      '<input type="file" id="dw-poster-' + i + '" accept="image/*" style="display:none" onchange="handleDWFile(event,' + i + ')">' +
+      '</div>' +
+
+      '<div class="form-row">' +
+      '<div class="form-group"><label>Title</label><input type="text" id="dw-title-' + i + '" value="' + (dw.title||'') + '" placeholder="e.g. Event Night Poster"></div>' +
+      '<div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="dw-tags-' + i + '" value="' + (dw.tags||[]).join(', ') + '" placeholder="Photoshop, Brand, Event"></div>' +
+      '</div>' +
+      '<div class="form-group"><label>Description (optional)</label><textarea id="dw-desc-' + i + '" rows="2" placeholder="Describe the design, client, or concept...">' + (dw.desc||'') + '</textarea></div>' +
+
+      '</div>';
+  });
+}
+
+function handleDWFile(event, i) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    if (!DATA.designWork) DATA.designWork = [];
+    DATA.designWork[i].posterData = e.target.result;
+    renderDesignWorkEditor();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeDesignWork(i) {
+  if (!DATA.designWork) return;
+  DATA.designWork.splice(i, 1);
+  renderDesignWorkEditor();
+}
+
+function addDesignWork() {
+  if (!DATA.designWork) DATA.designWork = [];
+  DATA.designWork.push({ title: 'New Poster', desc: '', tags: [], posterData: '' });
+  renderDesignWorkEditor();
+  setTimeout(function() {
+    var cards = document.querySelectorAll('#designwork-editor .admin-card');
+    if (cards.length) cards[cards.length-1].scrollIntoView({ behavior: 'smooth' });
+  }, 100);
 }
 
 // Migrate old before/after video data to single driveUrl
@@ -235,6 +492,14 @@ if (DATA.videos) {
     delete v.afterDriveUrl;
     return v;
   });
+}
+
+// FORCE SET hero tags — replaces whatever is in data.js
+DATA.tags = ['Video Editing', 'CapCut', 'Reels', 'Thumbnail Designer'];
+
+// Update tagline if it still has the old wording
+if (DATA.tagline && (DATA.tagline.includes('tells your story') || DATA.tagline.includes('shaping narratives'))) {
+  DATA.tagline = 'I craft engaging videos that connect with audiences — from short-form reels to long-form content. I also design eye-catching thumbnails & posters to make your content stand out.';
 }
 
 render();
@@ -450,6 +715,16 @@ function populateAdmin() {
   set('edit-ejs-service', DATA.emailjsServiceId);
   set('edit-ejs-template', DATA.emailjsTemplateId);
   renderVideoEditor();
+  renderColorGradeEditor();
+  // Restore layout radio
+  var savedLayout = DATA.cgLayout || 'landscape';
+  var radios = document.querySelectorAll('input[name="cg-layout"]');
+  radios.forEach(function(r) { r.checked = (r.value === savedLayout); });
+  // Render Design Work editor and restore layout
+  renderDesignWorkEditor();
+  var savedDWLayout = DATA.dwLayout || 'landscape';
+  var dwRadios = document.querySelectorAll('input[name="dw-layout"]');
+  dwRadios.forEach(function(r) { r.checked = (r.value === savedDWLayout); });
   renderSkillsEditor(); renderProjectsEditor(); renderExpEditor(); renderEduEditor(); renderTestiEditor();
 }
 
@@ -459,64 +734,11 @@ function renderVideoEditor() {
   if (!c) return;
   c.innerHTML = '';
   DATA.videos.forEach((v, i) => {
-    const hasDrive      = !!extractDriveId(v.driveUrl || '');
-    const hasPoster     = v.posterData && v.posterData.length > 100;
-    const hasBeforeData = v.beforeData && v.beforeData.length > 100;
-    const hasAfterData  = v.afterData  && v.afterData.length  > 100;
-    const isBA          = (v.type === 'beforeafter');
-    const isThumbOnly   = !!v.thumbnailOnly;
+    const hasDrive  = !!extractDriveId(v.driveUrl || '');
+    const hasPoster = v.posterData && v.posterData.length > 100;
 
     const driveIdHtml = hasDrive
       ? '<div style="margin-top:0.5rem;padding:0.5rem 0.8rem;background:rgba(232,197,71,0.08);border:1px solid rgba(232,197,71,0.2);border-radius:3px;font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);">✅ Drive ID detected: ' + extractDriveId(v.driveUrl) + '</div>'
-      : '';
-
-    // Before/After image upload rows (shown only when type = beforeafter)
-    const baSection = isBA
-      ? '<div class="form-row">' +
-          '<div class="form-group">' +
-            '<label>🔙 Before Image</label>' +
-            '<div class="vid-upload-area" id="vid-before-area-' + i + '" onclick="document.getElementById(&apos;vid-before-' + i + '&apos;).click()">' +
-            (hasBeforeData ? '<span style="color:var(--accent)">✅ Before image uploaded</span>' : '<span>📂 Click to upload BEFORE image</span>') +
-            '</div>' +
-            '<input type="file" id="vid-before-' + i + '" accept="image/*" style="display:none" onchange="handleBeforeFile(event,' + i + ')">' +
-          '</div>' +
-          '<div class="form-group">' +
-            '<label>✨ After Image</label>' +
-            '<div class="vid-upload-area" id="vid-after-area-' + i + '" onclick="document.getElementById(&apos;vid-after-' + i + '&apos;).click()">' +
-            (hasAfterData ? '<span style="color:var(--accent)">✅ After image uploaded</span>' : '<span>📂 Click to upload AFTER image</span>') +
-            '</div>' +
-            '<input type="file" id="vid-after-' + i + '" accept="image/*" style="display:none" onchange="handleAfterFile(event,' + i + ')">' +
-          '</div>' +
-        '</div>'
-      : '';
-
-    // Drive URL row (hidden for before/after type)
-    const driveSection = !isBA
-      ? '<div class="form-group">' +
-          '<label>🎬 Video — Google Drive Share Link</label>' +
-          '<input type="text" id="vid-drive-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + (v.driveUrl || '') + '" oninput="previewDriveLink(&apos;drive&apos;,' + i + ')">' +
-          '<div id="vid-drive-preview-' + i + '">' + driveIdHtml + '</div>' +
-        '</div>'
-      : '';
-
-    // Thumbnail upload (always shown; for beforeafter it acts as card cover)
-    const posterSection =
-      '<div class="form-group">' +
-      '<label>🖼️ Thumbnail Image' + (isBA ? ' (optional cover for the card title area)' : ' (optional — shown on video card)') + '</label>' +
-      '<div class="vid-upload-area" id="vid-poster-area-' + i + '" onclick="document.getElementById(&apos;vid-poster-&apos;+' + i + '+&apos;&apos;).click()">' +
-      (hasPoster ? '<span style="color:var(--accent)">✅ Thumbnail uploaded</span>' : '<span>🖼️ Click to upload thumbnail (JPG/PNG)</span>') +
-      '</div>' +
-      '<input type="file" id="vid-poster-' + i + '" accept="image/*" style="display:none" onchange="handlePosterFile(event,' + i + ')">' +
-      '</div>';
-
-    // Thumbnail-only toggle (not available for beforeafter which is already image-only)
-    const thumbOnlyToggle = !isBA
-      ? '<div class="form-group" style="display:flex;align-items:center;gap:0.8rem;">' +
-          '<label style="margin:0;display:flex;align-items:center;gap:0.6rem;cursor:pointer;">' +
-            '<input type="checkbox" id="vid-thumbonly-' + i + '"' + (isThumbOnly ? ' checked' : '') + ' onchange="toggleThumbOnly(this,' + i + ')" style="width:16px;height:16px;accent-color:var(--accent);">' +
-            '<span>🖼️ <strong>Thumbnail-Only Mode</strong> — show image only, no play button or lightbox</span>' +
-          '</label>' +
-        '</div>'
       : '';
 
     c.innerHTML +=
@@ -526,24 +748,34 @@ function renderVideoEditor() {
       '<button class="admin-btn-remove" onclick="removeVideo(' + i + ')">Remove</button>' +
       '</div>' +
 
-      driveSection +
-      posterSection +
-      baSection +
+      '<div class="form-group">' +
+      '<label>🎬 Video — Google Drive Share Link</label>' +
+      '<input type="text" id="vid-drive-url-' + i + '" placeholder="Paste Google Drive share link here..." value="' + (v.driveUrl || '') + '" oninput="previewDriveLink(&apos;drive&apos;,' + i + ')">' +
+      '<div id="vid-drive-preview-' + i + '">' + driveIdHtml + '</div>' +
+      '</div>' +
+
+      '<div class="form-group">' +
+      '<label>🖼️ Thumbnail Image (optional — shown on video card)</label>' +
+      '<div class="vid-upload-area" id="vid-poster-area-' + i + '" onclick="document.getElementById(&apos;vid-poster-&apos;+' + i + '+&apos;&apos;).click()">' +
+      (hasPoster
+        ? '<span style="color:var(--accent)">✅ Thumbnail uploaded</span>'
+        : '<span>🖼️ Click to upload thumbnail (JPG/PNG)</span>') +
+      '</div>' +
+      '<input type="file" id="vid-poster-' + i + '" accept="image/*" style="display:none" onchange="handlePosterFile(event,' + i + ')">' +
+      '</div>' +
 
       '<div class="form-row">' +
       '<div class="form-group"><label>Category</label><input type="text" id="vid-cat-' + i + '" value="' + (v.cat||'') + '"></div>' +
       '<div class="form-group"><label>Title</label><input type="text" id="vid-title-' + i + '" value="' + (v.title||'') + '"></div>' +
       '</div>' +
       '<div class="form-row">' +
-      '<div class="form-group"><label>📐 Card Type</label>' +
-      '<select id="vid-type-' + i + '" style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:2px;padding:0.8rem 1rem;color:var(--text);font-family:var(--font-body);font-size:0.88rem;outline:none;" onchange="renderVideoEditor()">' +
+      '<div class="form-group"><label>📐 Video Type</label>' +
+      '<select id="vid-type-' + i + '" style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:2px;padding:0.8rem 1rem;color:var(--text);font-family:var(--font-body);font-size:0.88rem;outline:none;">' +
       '<option value="video"' + ((!v.type || v.type==='video') ? ' selected' : '') + '>🎬 Video (16:9 landscape)</option>' +
       '<option value="short"' + (v.type==='short' ? ' selected' : '') + '>📱 Short / Reel (9:16 portrait)</option>' +
-      '<option value="beforeafter"' + (v.type==='beforeafter' ? ' selected' : '') + '>🔀 Before/After Slider (images)</option>' +
       '</select></div>' +
       '<div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="vid-tags-' + i + '" value="' + (v.tags||[]).join(', ') + '"></div>' +
       '</div>' +
-      thumbOnlyToggle +
       '<div class="form-group"><label>Description</label><textarea id="vid-desc-' + i + '" rows="2">' + (v.desc||'') + '</textarea></div>' +
       '</div>';
   });
@@ -576,66 +808,10 @@ function handlePosterFile(event, i) {
   reader.readAsDataURL(file);
 }
 
-function handleBeforeFile(event, i) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const area = document.getElementById('vid-before-area-' + i);
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    DATA.videos[i].beforeData = e.target.result;
-    area.innerHTML = '<span style="color:var(--accent)">✅ Before image ready — ' + file.name + '</span>';
-  };
-  reader.readAsDataURL(file);
-}
-
-function handleAfterFile(event, i) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const area = document.getElementById('vid-after-area-' + i);
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    DATA.videos[i].afterData = e.target.result;
-    area.innerHTML = '<span style="color:var(--accent)">✅ After image ready — ' + file.name + '</span>';
-  };
-  reader.readAsDataURL(file);
-}
-
-function toggleThumbOnly(checkbox, i) {
-  DATA.videos[i].thumbnailOnly = checkbox.checked;
-}
-
-function initBeforeAfterSliders() {
-  document.querySelectorAll('.ba-card').forEach(function(card) {
-    const wrap    = card.querySelector('.ba-slider-wrap');
-    const before  = card.querySelector('.ba-before');
-    const divider = card.querySelector('.ba-divider');
-    if (!wrap || !before || !divider) return;
-
-    function setPos(x) {
-      const rect  = wrap.getBoundingClientRect();
-      const pct   = Math.min(100, Math.max(0, ((x - rect.left) / rect.width) * 100));
-      before.style.clipPath  = 'inset(0 ' + (100 - pct) + '% 0 0)';
-      divider.style.left     = pct + '%';
-    }
-
-    // Initialise at 50%
-    setPos(wrap.getBoundingClientRect().left + wrap.getBoundingClientRect().width / 2);
-
-    let dragging = false;
-    divider.addEventListener('mousedown',  function(e) { dragging = true; e.preventDefault(); });
-    document.addEventListener('mouseup',   function()  { dragging = false; });
-    document.addEventListener('mousemove', function(e) { if (dragging) setPos(e.clientX); });
-
-    divider.addEventListener('touchstart', function(e) { dragging = true; e.preventDefault(); }, {passive:false});
-    document.addEventListener('touchend',  function()  { dragging = false; });
-    document.addEventListener('touchmove', function(e) { if (dragging) setPos(e.touches[0].clientX); }, {passive:true});
-  });
-}
-
 function removeVideo(i) { DATA.videos.splice(i, 1); renderVideoEditor(); }
 
 function addVideo() {
-  DATA.videos.push({title:'My Video',cat:'Category',desc:'Describe this video.',tags:['CapCut'],type:'video',driveUrl:'',posterData:'',beforeData:'',afterData:'',thumbnailOnly:false});
+  DATA.videos.push({title:'My Video',cat:'Category',desc:'Describe this video.',tags:['CapCut'],type:'video',driveUrl:'',posterData:''});
   renderVideoEditor();
   setTimeout(() => {
     const cards = document.querySelectorAll('#videos-editor .admin-card');
@@ -722,17 +898,41 @@ function applyChanges() {
   DATA.emailjsServiceId = get('edit-ejs-service');
   DATA.emailjsTemplateId = get('edit-ejs-template');
 
+  // Save layout choice
+  var checkedLayout = document.querySelector('input[name="cg-layout"]:checked');
+  DATA.cgLayout = (checkedLayout ? checkedLayout.value : null) || DATA.cgLayout || 'landscape';
+
+  // Save Design Work layout choice
+  var checkedDWLayout = document.querySelector('input[name="dw-layout"]:checked');
+  DATA.dwLayout = (checkedDWLayout ? checkedDWLayout.value : null) || DATA.dwLayout || 'landscape';
+
+  DATA.colorGrades = (DATA.colorGrades || []).map(function(cg, i) {
+    return {
+      title:      get('cg-title-' + i) || cg.title || '',
+      desc:       get('cg-desc-'  + i) || '',
+      tags:       (get('cg-tags-' + i)||'').split(',').map(function(s){return s.trim();}).filter(Boolean),
+      beforeData: cg.beforeData || '',
+      afterData:  cg.afterData  || ''
+    };
+  });
+
+  DATA.designWork = (DATA.designWork || []).map(function(dw, i) {
+    return {
+      title:      get('dw-title-' + i) || dw.title || '',
+      desc:       get('dw-desc-'  + i) || '',
+      tags:       (get('dw-tags-' + i)||'').split(',').map(function(s){return s.trim();}).filter(Boolean),
+      posterData: dw.posterData || ''
+    };
+  });
+
   DATA.videos = DATA.videos.map((v,i)=>({
-    driveUrl:      (document.getElementById('vid-drive-url-'+i) ? document.getElementById('vid-drive-url-'+i).value.trim() : (v.driveUrl||'')),
-    posterData:    v.posterData  || '',
-    beforeData:    v.beforeData  || '',
-    afterData:     v.afterData   || '',
-    thumbnailOnly: !!(document.getElementById('vid-thumbonly-'+i) ? document.getElementById('vid-thumbonly-'+i).checked : v.thumbnailOnly),
-    type:          (document.getElementById('vid-type-'+i) ? document.getElementById('vid-type-'+i).value : (v.type||'video')),
-    cat:   get('vid-cat-'+i),
+    driveUrl: (document.getElementById('vid-drive-url-'+i) ? document.getElementById('vid-drive-url-'+i).value.trim() : (v.driveUrl||'')),
+    posterData: v.posterData || '',
+    type: (document.getElementById('vid-type-'+i) ? document.getElementById('vid-type-'+i).value : (v.type||'video')),
+    cat: get('vid-cat-'+i),
     title: get('vid-title-'+i),
-    desc:  get('vid-desc-'+i),
-    tags:  get('vid-tags-'+i).split(',').map(s=>s.trim()).filter(Boolean)
+    desc: get('vid-desc-'+i),
+    tags: get('vid-tags-'+i).split(',').map(s=>s.trim()).filter(Boolean)
   }));
   DATA.skills = DATA.skills.map((_,i)=>({
     icon: get(`sk-icon-${i}`), title: get(`sk-title-${i}`),
@@ -827,30 +1027,52 @@ async function compressDataImages(data) {
     const v = d.videos[i];
     if (v.posterData && v.posterData.startsWith('data:image'))
       v.posterData = await compressImage(v.posterData, 600, 0.60);
-    if (v.beforeData && v.beforeData.startsWith('data:image'))
-      v.beforeData = await compressImage(v.beforeData, 800, 0.65);
-    if (v.afterData && v.afterData.startsWith('data:image'))
-      v.afterData = await compressImage(v.afterData, 800, 0.65);
     delete v.videoData;
     delete v.fileName; delete v.mimeType;
+  }
+
+  for (let i = 0; i < (d.colorGrades||[]).length; i++) {
+    const cg = d.colorGrades[i];
+    if (cg.beforeData && cg.beforeData.startsWith('data:image'))
+      cg.beforeData = await compressImage(cg.beforeData, 900, 0.72);
+    if (cg.afterData && cg.afterData.startsWith('data:image'))
+      cg.afterData = await compressImage(cg.afterData, 900, 0.72);
+  }
+
+  for (let i = 0; i < (d.designWork||[]).length; i++) {
+    const dw = d.designWork[i];
+    if (dw.posterData && dw.posterData.startsWith('data:image'))
+      dw.posterData = await compressImage(dw.posterData, 1200, 0.78);
   }
 
   return d;
 }
 
 function buildExportHTML(exportData) {
-  var src   = document.documentElement.outerHTML;
+  var src = document.documentElement.outerHTML;
 
+  // Close admin/pwd panels if open
   src = src.replace(/<div id="admin-panel"[^>]*class="[^"]*open[^"]*"[^>]*>/g,
     function(m) { return m.replace(/\bopen\b/g, '').replace(/class=" "/, 'class=""'); });
   src = src.replace(/<div id="pwd-prompt"[^>]*class="[^"]*open[^"]*"[^>]*>/g,
     function(m) { return m.replace(/\bopen\b/g, '').replace(/class=" "/, 'class=""'); });
 
-  var block = 'const DATA = ' + JSON.stringify(exportData) + ';';
-  var start = src.indexOf('const DATA = {');
-  var end   = src.indexOf('const ADMIN_PASSWORD');
-  if (start === -1 || end === -1) return src;
-  return src.slice(0, start) + block + '\n\n' + src.slice(end);
+  // Bake DATA inline — replace <script src="data.js"> so viewers get all images.
+  // Without this, exported pages load data.js from server which viewers don\'t have.
+  var inlineDataTag = '<scr' + 'ipt>\nconst DATA = ' + JSON.stringify(exportData) + ';\n<\/scr' + 'ipt>';
+  var replaced = src.replace(/<script\s+src=["\']data\.js["\']\s*><\/script>/i, inlineDataTag);
+
+  // Fallback: old in-page DATA pattern
+  if (replaced === src) {
+    var block = 'const DATA = ' + JSON.stringify(exportData) + ';';
+    var start = src.indexOf('const DATA = {');
+    var end   = src.indexOf('const ADMIN_PASSWORD');
+    if (start !== -1 && end !== -1) {
+      replaced = src.slice(0, start) + block + '\n\n' + src.slice(end);
+    }
+  }
+
+  return replaced;
 }
 
 function showSizeBar(bytes, color, msg) {
@@ -1210,3 +1432,147 @@ const obs = new IntersectionObserver(entries => {
   entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
 }, {threshold: 0.08});
 document.querySelectorAll('.fade-up').forEach(el => obs.observe(el));
+
+/* ── DESIGN WORK LIGHTBOX ── */
+var _dwLbIdx = 0;
+
+function openDWLightbox(i) {
+  var dwData = DATA.designWork || [];
+  if (!dwData[i] || !dwData[i].posterData) return;
+  _dwLbIdx = i;
+  _updateDWLightbox();
+  document.getElementById('dw-lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function _updateDWLightbox() {
+  var dwData = DATA.designWork || [];
+  var dw = dwData[_dwLbIdx];
+  if (!dw) return;
+  var img = document.getElementById('dw-lightbox-img');
+  var cap = document.getElementById('dw-lightbox-caption');
+  img.src = dw.posterData;
+  img.style.animation = 'none';
+  void img.offsetWidth; // reflow to restart animation
+  img.style.animation = '';
+  var total = dwData.filter(function(d){ return d.posterData && d.posterData.length > 100; }).length;
+  var label = dw.title ? dw.title.toUpperCase() : 'DESIGN WORK';
+  cap.textContent = label + '  ·  ' + (_dwLbIdx + 1) + ' / ' + dwData.length;
+  // show/hide nav arrows
+  document.getElementById('dw-lightbox-nav-prev').style.opacity = _dwLbIdx > 0 ? '1' : '0.2';
+  document.getElementById('dw-lightbox-nav-next').style.opacity = _dwLbIdx < dwData.length - 1 ? '1' : '0.2';
+}
+
+function dwLightboxNav(dir) {
+  var dwData = DATA.designWork || [];
+  var next = _dwLbIdx + dir;
+  if (next < 0 || next >= dwData.length) return;
+  _dwLbIdx = next;
+  _updateDWLightbox();
+}
+
+function closeDWLightbox() {
+  document.getElementById('dw-lightbox').classList.remove('open');
+  document.getElementById('dw-lightbox-img').src = '';
+  document.body.style.overflow = '';
+}
+
+function dwLightboxBgClick(e) {
+  if (e.target === document.getElementById('dw-lightbox')) closeDWLightbox();
+}
+
+document.addEventListener('keydown', function(e) {
+  var lb = document.getElementById('dw-lightbox');
+  if (!lb || !lb.classList.contains('open')) return;
+  if (e.key === 'Escape') closeDWLightbox();
+  if (e.key === 'ArrowLeft')  dwLightboxNav(-1);
+  if (e.key === 'ArrowRight') dwLightboxNav(1);
+});
+
+/* ── COLOR GRADE LIGHTBOX ── */
+var _cgLbIdx = 0;
+var _cgLbSide = 'after'; // 'before' or 'after'
+
+function openCGLightbox(i, side) {
+  var cgData = DATA.colorGrades || [];
+  if (!cgData[i]) return;
+  _cgLbIdx = i;
+  _cgLbSide = side || 'after';
+  _updateCGLightbox();
+  document.getElementById('cg-lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function _updateCGLightbox() {
+  var cgData = DATA.colorGrades || [];
+  var cg = cgData[_cgLbIdx];
+  if (!cg) return;
+  var img = document.getElementById('cg-lightbox-img');
+  var lbl = document.getElementById('cg-lightbox-label');
+  var src = (_cgLbSide === 'before' && cg.beforeData && cg.beforeData.length > 100)
+    ? cg.beforeData
+    : (cg.afterData && cg.afterData.length > 100 ? cg.afterData : cg.beforeData);
+  img.src = src || '';
+  img.style.animation = 'none';
+  void img.offsetWidth;
+  img.style.animation = '';
+  var title = cg.title ? cg.title.toUpperCase() : 'COLOR GRADE';
+  var sideLabel = (_cgLbSide === 'before') ? 'BEFORE' : 'AFTER (GRADED)';
+  lbl.textContent = title + '  ·  ' + sideLabel + '  ·  ' + (_cgLbIdx + 1) + ' / ' + cgData.length;
+  // nav arrows
+  document.getElementById('cg-lightbox-nav-prev').style.opacity = _cgLbIdx > 0 ? '1' : '0.2';
+  document.getElementById('cg-lightbox-nav-next').style.opacity = _cgLbIdx < cgData.length - 1 ? '1' : '0.2';
+}
+
+function cgLightboxNav(dir) {
+  var cgData = DATA.colorGrades || [];
+  var next = _cgLbIdx + dir;
+  if (next < 0 || next >= cgData.length) return;
+  _cgLbIdx = next;
+  _updateCGLightbox();
+}
+
+function closeCGLightbox() {
+  document.getElementById('cg-lightbox').classList.remove('open');
+  document.getElementById('cg-lightbox-img').src = '';
+  document.body.style.overflow = '';
+}
+
+function cgLightboxBgClick(e) {
+  if (e.target === document.getElementById('cg-lightbox')) closeCGLightbox();
+}
+
+document.addEventListener('keydown', function(e) {
+  var lb = document.getElementById('cg-lightbox');
+  if (!lb || !lb.classList.contains('open')) return;
+  if (e.key === 'Escape') closeCGLightbox();
+  if (e.key === 'ArrowLeft')  cgLightboxNav(-1);
+  if (e.key === 'ArrowRight') cgLightboxNav(1);
+});
+
+/* ── SCROLL PROGRESS BAR + SCROLL-TO-TOP ── */
+(function() {
+  var progressBar = document.getElementById('scroll-progress-bar');
+  var scrollBtn   = document.getElementById('scroll-top-btn');
+
+  function onScroll() {
+    var scrollTop  = window.scrollY || document.documentElement.scrollTop;
+    var docHeight  = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    var pct        = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+
+    // Progress bar
+    if (progressBar) progressBar.style.width = pct.toFixed(2) + '%';
+
+    // Scroll-to-top: show when 90% or more scrolled (near bottom)
+    if (scrollBtn) {
+      if (pct >= 90) {
+        scrollBtn.classList.add('visible');
+      } else {
+        scrollBtn.classList.remove('visible');
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll(); // init on load
+})();
